@@ -28,6 +28,5 @@ users = [
         "name": "Jim Beam",
         "email": "jim.beam@example.com",
         "password": "password",
-    },
+    }
 ]
-
