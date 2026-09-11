@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException
 from apps.api.schemas.quiz import QuizResponse
 from apps.api.core.db import supabase
@@ -6,7 +7,7 @@ from uuid import UUID
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
-@router.get("", response_model=QuizResponse)
+@router.get("", response_model=List[QuizResponse])
 async def get_quizzes():
     quizzes = supabase.table("quizzes").select("*").execute()
     if not quizzes.data:
