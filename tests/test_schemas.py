@@ -357,3 +357,18 @@ def test_generation_job_schemas():
     )
     resp = GenerationJobResponse.model_validate(job_db)
     assert resp.status == "pending"
+
+
+def test_settings_schema(monkeypatch):
+    from apps.api.core.config import Settings
+
+    monkeypatch.setenv("SUPABASE_URL", "https://custom.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "custom-key")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    custom_settings = Settings()
+    assert custom_settings.SUPABASE_URL == "https://custom.supabase.co"
+    assert custom_settings.SUPABASE_ANON_KEY == "custom-key"
+    assert custom_settings.ENVIRONMENT == "production"
+    assert custom_settings.PROJECT_NAME == "Noesis API"
+
