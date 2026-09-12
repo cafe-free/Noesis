@@ -66,3 +66,18 @@ CREATE TABLE exercise_attempts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX idx_exercise_attempts_quiz_attempt_id ON exercise_attempts(quiz_attempt_id);
+
+-- GenerationJobs
+CREATE TABLE generation_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status TEXT NOT NULL,
+    language TEXT NOT NULL,
+    level TEXT NOT NULL,
+    topic TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    quiz_id UUID REFERENCES quizzes(id) ON DELETE SET NULL,
+    error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ
+);

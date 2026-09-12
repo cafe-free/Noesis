@@ -1,49 +1,71 @@
-from fastapi import APIRouter, HTTPException
-from apps.api.core.db import supabase
-from apps.api.models.user import User
+from typing import List, Optional
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, status
+from supabase import Client
 
-router = APIRouter()
+from apps.api.core.db import get_supabase
+from apps.api.schemas.user import UserCreate, UserResponse, UserUpdate
 
-@router.get("/users")
-async def get_users():
-    users = supabase.table("users").select("*").execute()
-    if not users.data:
-        raise HTTPException(status_code=404, detail="Users not found")
-    return users.data
+router = APIRouter(prefix="/users", tags=["users"])
 
-@router.get("/users/{user_id}")
-async def get_user(user_id: int):
-    users = supabase.table("users").select("*").eq("id", user_id).execute()
-    if not users.data:
-        raise HTTPException(status_code=404, detail="User not found")
-    return users.data[0]
 
-@router.post("/users")
-async def create_user(user: User):
-    user = supabase.table("users").insert(user.model_dump()).execute()
-    if not user.data:
-        raise HTTPException(status_code=400, detail="Failed to create user")
-    return {
-        "message": "User created successfully",
-        "user": user.data[0]
-    }
+@router.get("", response_model=List[UserResponse])
+async def get_users(
+    email: Optional[str] = None,
+    db: Client = Depends(get_supabase),
+):
+    query = db.table("users").select("*")
+    if email:
+        query = query.eq("email", email)
+    res = query.execute()
+    return res.data or []
 
-@router.put("/users/{user_id}")
-async def update_user(user_id: int, user: User):
-    user = supabase.table("users").update(user.model_dump()).eq("id", user_id).execute()
-    if not user.data:
-        raise HTTPException(status_code=400, detail="Failed to update user")
-    return {
-        "message": "User updated successfully",
-        "user": user.data[0]
-    }
 
-@router.delete("/users/{user_id}")
-async def delete_user(user_id: int):
-    user = supabase.table("users").delete().eq("id", user_id).execute()
-    if not user.data:
-        raise HTTPException(status_code=400, detail="Failed to delete user")
-    return {
-        "message": "User deleted successfully",
-        "user": user.data[0]
-    }
+@router.get("/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: UUID,
+    db: Client = Depends(get_supabase),
+):
+    res = db.table("users").select("*").eq("id", str(user_id)).execute()
+    if not res.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return res.data[0]
+
+
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_in: UserCreate,
+    db: Client = Depends(get_supabase),
+):
+    payload = user_in.model_dump(mode="json")
+    res = db.table("users").insert(payload).execute()
+    if not res.data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create user")
+    return res.data[0]
+
+
+@router.put("/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: UUID,
+    user_in: UserUpdate,
+    db: Client = Depends(get_supabase),
+):
+    payload = user_in.model_dump(exclude_unset=True, mode="json")
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+    res = db.table("users").update(payload).eq("id", str(user_id)).execute()
+    if not res.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or update failed")
+    return res.data[0]
+
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: UUID,
+    db: Client = Depends(get_supabase),
+):
+    res = db.table("users").delete().eq("id", str(user_id)).execute()
+    if not res.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or delete failed")
+    return {"message": "User deleted successfully", "id": str(user_id)}
+
