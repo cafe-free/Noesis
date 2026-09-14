@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noesis - Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header-nav">
+      <div>
+        <h1 class="header-title">
+          Noesis API Dashboard
+          <span class="badge badge-success">Online</span>
+        </h1>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+          FastAPI &bull; JWT Auth &bull; Protected Endpoints
+        </div>
+      </div>
+      <div class="user-badge">
+        <span id="user-display" style="font-size: 0.9rem; color: var(--text-main);">Loading...</span>
+        <button class="btn btn-secondary btn-sm" onclick="handleManualRefresh()">Rotate Token</button>
+        <button class="btn btn-danger btn-sm" onclick="Auth.logout()">Logout</button>
+      </div>
+    </header>
+
+    <div id="dash-banner" class="banner"></div>
+
+    <div class="grid-2">
+      <!-- Left Column: User & Core Actions -->
+      <div>
+        <!-- Active User Profile Card -->
+        <div class="card">
+          <h2 style="font-size: 1.15rem; margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+            Current User (/auth/me)
+            <button class="btn btn-secondary btn-sm" onclick="loadUserProfile()">Reload</button>
+          </h2>
+          <div id="user-details" style="font-size: 0.9rem; color: var(--text-muted);">
+            Fetching profile...
+          </div>
+          <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">
+            <strong>Active Access Token:</strong>
+            <div id="token-preview" style="font-family: monospace; color: #38bdf8; margin-top: 4px;">...</div>
+          </div>
+        </div>
+
+        <!-- Lessons Management Card -->
+        <div class="card">
+          <h2 style="font-size: 1.15rem; margin-top: 0;">Lessons (Protected API)</h2>
+          <form onsubmit="handleCreateLesson(event)">
+            <div class="grid-2" style="gap: 10px;">
+              <div class="form-group">
+                <label>Language</label>
+                <input type="text" id="lesson-lang" placeholder="Spanish" required>
+              </div>
+              <div class="form-group">
+                <label>Level</label>
+                <input type="text" id="lesson-level" placeholder="A1" required>
+              </div>
+            </div>
+            <div class="grid-2" style="gap: 10px;">
+              <div class="form-group">
+                <label>Topic</label>
+                <input type="text" id="lesson-topic" placeholder="Greetings" required>
+              </div>
+              <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="lesson-title" placeholder="Basic Salutations" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="lesson-desc" placeholder="Learn hola, buenos dias...">
+            </div>
+            <button type="submit" class="btn-sm">Create Lesson</button>
+          </form>
+
+          <div class="actions-row">
+            <button class="btn btn-secondary btn-sm" onclick="fetchLessons()">List All Lessons</button>
+          </div>
+          <div id="lessons-list" style="margin-top: 14px;"></div>
+        </div>
+
+        <!-- Generation Jobs Card -->
+        <div class="card">
+          <h2 style="font-size: 1.15rem; margin-top: 0;">Generation Jobs</h2>
+          <form onsubmit="handleCreateJob(event)">
+            <div class="grid-2" style="gap: 10px;">
+              <div class="form-group">
+                <label>Language</label>
+                <input type="text" id="job-lang" placeholder="Japanese" required>
+              </div>
+              <div class="form-group">
+                <label>Level</label>
+                <input type="text" id="job-level" placeholder="N5" required>
+              </div>
+            </div>
+            <div class="grid-2" style="gap: 10px;">
+              <div class="form-group">
+                <label>Topic</label>
+                <input type="text" id="job-topic" placeholder="Food & Dining" required>
+              </div>
+              <div class="form-group">
+                <label>Question Count</label>
+                <input type="number" id="job-count" value="5" min="1" max="20" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-sm">Trigger Job</button>
+          </form>
+          <div class="actions-row">
+            <button class="btn btn-secondary btn-sm" onclick="fetchJobs()">List Generation Jobs</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: API Diagnostics & JSON Inspector -->
+      <div>
+        <!-- Auth & Security Test Utilities -->
+        <div class="card">
+          <h2 style="font-size: 1.15rem; margin-top: 0;">Auth & Route Verification</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -4px;">
+            Test backend authentication mechanisms directly from the client.
+          </p>
+          <div class="actions-row">
+            <button class="btn btn-secondary btn-sm" onclick="testAuthenticatedCall()">
+              GET /lessons (Authed)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="testUnauthenticatedCall()">
+              GET /lessons (No Token &rarr; 401)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="testQuizzesCall()">
+              GET /quizzes
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="handleManualRefresh()">
+              POST /auth/refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Raw Response Inspector Card -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="font-size: 1.15rem; margin: 0;">API Response Inspector</h2>
+            <button class="btn btn-secondary btn-sm" onclick="clearInspector()">Clear</button>
+          </div>
+          <div id="inspector-meta" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+            Execute any action to inspect live server output.
+          </div>
+          <pre id="json-output" class="code-block">// Waiting for API call...</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    // Guard page access
+    if (!Auth.requireAuth()) {
+      // Stopped by redirect
+    } else {
+      initDashboard();
+    }
+
+    async function initDashboard() {
+      await loadUserProfile();
+      updateTokenPreview();
+      fetchLessons();
+    }
+
+    function updateTokenPreview() {
+      const token = Auth.getAccessToken();
+      const el = document.getElementById('token-preview');
+      if (token) {
+        el.textContent = token.substring(0, 32) + '...' + token.substring(token.length - 12);
+      } else {
+        el.textContent = 'None';
+      }
+    }
+
+    async function inspectResponse(resPromise, label = '') {
+      const start = performance.now();
+      const metaEl = document.getElementById('inspector-meta');
+      try {
+        const res = await resPromise;
+        const duration = Math.round(performance.now() - start);
+        let data;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        metaEl.innerHTML = `<strong>${label}</strong> &bull; Status: <span style="color:${res.ok ? 'var(--success)' : 'var(--error)'}">${res.status} ${res.statusText}</span> &bull; ${duration}ms`;
+        UI.renderJson('json-output', data);
+        return { res, data };
+      } catch (err) {
+        metaEl.innerHTML = `<strong>${label}</strong> &bull; <span style="color:var(--error)">Request Error: ${err.message}</span>`;
+        UI.renderJson('json-output', { error: err.message });
+        throw err;
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const { data: user } = await inspectResponse(apiFetch('/auth/me'), 'GET /auth/me');
+        if (user && user.email) {
+          document.getElementById('user-display').innerHTML = `
+            <strong>${user.username || user.email.split('@')[0]}</strong>
+            <span style="color:var(--text-muted); font-size:0.8rem;">(${user.email})</span>
+          `;
+          document.getElementById('user-details').innerHTML = `
+            <div><strong>ID:</strong> <code style="color:#93c5fd">${user.id}</code></div>
+            <div><strong>Email:</strong> ${user.email}</div>
+            <div><strong>Username:</strong> ${user.username || '<em>None</em>'}</div>
+            <div><strong>Provider:</strong> <span class="badge badge-info">${user.auth_provider || 'password'}</span></div>
+            <div><strong>Created:</strong> ${new Date(user.created_at).toLocaleString()}</div>
+          `;
+        }
+      } catch (err) {
+        UI.showBanner('dash-banner', 'Failed to load user profile: ' + err.message, 'error');
+      }
+    }
+
+    async function handleManualRefresh() {
+      UI.hideBanner('dash-banner');
+      try {
+        const res = await inspectResponse(
+          fetch('/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: Auth.getRefreshToken() })
+          }),
+          'POST /auth/refresh'
+        );
+        if (res.res.ok) {
+          Auth.setSession(res.data);
+          updateTokenPreview();
+          UI.showBanner('dash-banner', 'Tokens successfully rotated and stored!', 'success');
+        } else {
+          UI.showBanner('dash-banner', 'Refresh failed: ' + (res.data?.detail || 'Expired'), 'error');
+        }
+      } catch (err) {
+        UI.showBanner('dash-banner', 'Refresh error: ' + err.message, 'error');
+      }
+    }
+
+    async function fetchLessons() {
+      try {
+        const { data: lessons } = await inspectResponse(apiFetch('/lessons'), 'GET /lessons');
+        const container = document.getElementById('lessons-list');
+        if (!Array.isArray(lessons) || lessons.length === 0) {
+          container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">No lessons found. Create one above!</div>';
+          return;
+        }
+        container.innerHTML = lessons.slice(0, 5).map(l => `
+          <div class="list-item">
+            <div>
+              <strong style="color:#f8fafc;">${l.title}</strong>
+              <div class="item-meta">
+                <span>${l.language} (${l.level})</span> &bull;
+                <span>Topic: ${l.topic}</span>
+              </div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteLesson('${l.id}')">Delete</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Fetch lessons failed:', err);
+      }
+    }
+
+    async function handleCreateLesson(e) {
+      e.preventDefault();
+      const payload = {
+        language: document.getElementById('lesson-lang').value.trim(),
+        level: document.getElementById('lesson-level').value.trim(),
+        topic: document.getElementById('lesson-topic').value.trim(),
+        title: document.getElementById('lesson-title').value.trim(),
+        description: document.getElementById('lesson-desc').value.trim() || undefined,
+      };
+
+      try {
+        const { res } = await inspectResponse(
+          apiFetch('/lessons', { method: 'POST', body: payload }),
+          'POST /lessons'
+        );
+        if (res.ok) {
+          UI.showBanner('dash-banner', 'Lesson created successfully!', 'success');
+          e.target.reset();
+          fetchLessons();
+        }
+      } catch (err) {
+        UI.showBanner('dash-banner', 'Failed to create lesson: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteLesson(id) {
+      if (!confirm('Delete this lesson?')) return;
+      try {
+        await inspectResponse(apiFetch(`/lessons/${id}`, { method: 'DELETE' }), `DELETE /lessons/${id}`);
+        fetchLessons();
+      } catch (err) {
+        UI.showBanner('dash-banner', 'Failed to delete lesson: ' + err.message, 'error');
+      }
+    }
+
+    async function fetchJobs() {
+      await inspectResponse(apiFetch('/generation-jobs'), 'GET /generation-jobs');
+    }
+
+    async function handleCreateJob(e) {
+      e.preventDefault();
+      const payload = {
+        language: document.getElementById('job-lang').value.trim(),
+        level: document.getElementById('job-level').value.trim(),
+        topic: document.getElementById('job-topic').value.trim(),
+        count: parseInt(document.getElementById('job-count').value, 10),
+      };
+
+      try {
+        await inspectResponse(
+          apiFetch('/generation-jobs', { method: 'POST', body: payload }),
+          'POST /generation-jobs'
+        );
+        UI.showBanner('dash-banner', 'Generation job dispatched!', 'success');
+      } catch (err) {
+        UI.showBanner('dash-banner', 'Job creation failed: ' + err.message, 'error');
+      }
+    }
+
+    async function testAuthenticatedCall() {
+      await inspectResponse(apiFetch('/lessons'), 'GET /lessons (Authenticated)');
+    }
+
+    async function testUnauthenticatedCall() {
+      // Raw fetch with no auth headers
+      await inspectResponse(fetch('/lessons'), 'GET /lessons (Unauthenticated -> Expect 401)');
+    }
+
+    async function testQuizzesCall() {
+      await inspectResponse(apiFetch('/quizzes'), 'GET /quizzes');
+    }
+
+    function clearInspector() {
+      document.getElementById('inspector-meta').textContent = 'Inspector cleared.';
+      document.getElementById('json-output').textContent = '// Ready';
+    }
+  </script>
+</body>
+</html>

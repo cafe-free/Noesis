@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noesis - Sign In / Register</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="card">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 class="header-title" style="justify-content: center;">Noesis Auth</h1>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin: 4px 0 0 0;">
+          Authentication & API Testing Portal
+        </p>
+      </div>
+
+      <div class="tabs">
+        <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button id="tab-register" class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <div id="auth-banner" class="banner"></div>
+
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" required placeholder="user@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" id="login-submit-btn" style="margin-top: 8px;">Sign In</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" style="display: none;" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" required placeholder="user@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="reg-username">Username (Optional)</label>
+          <input type="text" id="reg-username" placeholder="johndoe" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password (Minimum 8 chars)</label>
+          <input type="password" id="reg-password" required minlength="8" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <button type="submit" id="reg-submit-btn" style="margin-top: 8px;">Create Account</button>
+      </form>
+    </div>
+
+    <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+      JWT Access Tokens &bull; Scrypt Password Hashing &bull; Refresh Token Rotation
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    // Redirect if already authenticated
+    if (window.location.pathname === '/register') {
+      switchTab('register');
+    }
+    if (Auth.isAuthenticated()) {
+      UI.showBanner('auth-banner', 'You are already logged in. Redirecting to dashboard...', 'info');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 800);
+    }
+
+    function switchTab(tab) {
+      UI.hideBanner('auth-banner');
+      const isLogin = tab === 'login';
+      document.getElementById('tab-login').className = `tab-btn ${isLogin ? 'active' : ''}`;
+      document.getElementById('tab-register').className = `tab-btn ${!isLogin ? 'active' : ''}`;
+      document.getElementById('login-form').style.display = isLogin ? 'flex' : 'none';
+      document.getElementById('register-form').style.display = !isLogin ? 'flex' : 'none';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      UI.hideBanner('auth-banner');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('login-submit-btn');
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+        await Auth.login(email, password);
+        UI.showBanner('auth-banner', 'Login successful! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
+      } catch (err) {
+        UI.showBanner('auth-banner', err.message || 'Login failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      UI.hideBanner('auth-banner');
+      const email = document.getElementById('reg-email').value.trim();
+      const username = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const btn = document.getElementById('reg-submit-btn');
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Creating account...';
+        await Auth.register(email, password, username);
+        UI.showBanner('auth-banner', 'Account registered successfully! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
+      } catch (err) {
+        UI.showBanner('auth-banner', err.message || 'Registration failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    }
+  </script>
+</body>
+</html>
