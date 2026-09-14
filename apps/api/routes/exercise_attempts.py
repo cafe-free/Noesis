@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from apps.api.core.db import get_supabase
+from apps.api.core.auth import get_current_user
 from apps.api.schemas.exercise_attempt import (
     ExerciseAttemptCreate,
     ExerciseAttemptResponse,
     ExerciseAttemptUpdate,
 )
 
-router = APIRouter(prefix="/exercise-attempts", tags=["exercise-attempts"])
+router = APIRouter(prefix="/exercise-attempts", tags=["exercise-attempts"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=List[ExerciseAttemptResponse])

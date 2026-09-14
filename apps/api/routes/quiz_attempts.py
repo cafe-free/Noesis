@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from apps.api.core.db import get_supabase
+from apps.api.core.auth import get_current_user
 from apps.api.schemas.exercise_attempt import ExerciseAttemptResponse
 from apps.api.schemas.quiz_attempt import (
     QuizAttemptCreate,
@@ -11,7 +12,7 @@ from apps.api.schemas.quiz_attempt import (
     QuizAttemptUpdate,
 )
 
-router = APIRouter(prefix="/quiz-attempts", tags=["quiz-attempts"])
+router = APIRouter(prefix="/quiz-attempts", tags=["quiz-attempts"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=List[QuizAttemptResponse])

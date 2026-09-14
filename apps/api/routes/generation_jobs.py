@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from apps.api.core.db import get_supabase
+from apps.api.core.auth import get_current_user
 from apps.api.schemas.generation_job import (
     GenerationJobCreate,
     GenerationJobResponse,
     GenerationJobUpdate,
 )
 
-router = APIRouter(prefix="/generation-jobs", tags=["generation-jobs"])
+router = APIRouter(prefix="/generation-jobs", tags=["generation-jobs"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=List[GenerationJobResponse])

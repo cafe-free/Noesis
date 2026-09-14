@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from apps.api.core.db import get_supabase
+from apps.api.core.auth import get_current_user
 from apps.api.schemas.user import UserCreate, UserResponse, UserUpdate
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=List[UserResponse])
