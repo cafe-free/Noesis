@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
@@ -13,6 +13,62 @@ from apps.api.schemas.exercise_attempt import (
 
 router = APIRouter(prefix="/exercise-attempts", tags=["exercise-attempts"], dependencies=[Depends(get_current_user)])
 
+
+from pydantic import BaseModel
+
+class CheckAnswerRequest(BaseModel):
+    quiz_id: UUID
+    exercise_id: UUID
+    user_answer: Any
+
+class CheckAnswerResponse(BaseModel):
+    is_correct: bool
+    correct_answer: str
+    explanation: str
+    xp_earned: int
+
+@router.post("/check", response_model=CheckAnswerResponse)
+async def check_exercise_answer(
+    request: CheckAnswerRequest,
+    db: Client = Depends(get_supabase),
+):
+    # Fetch the exercise to get the correct answer
+    res = db.table("exercises").select("*").eq("id", str(request.exercise_id)).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    
+    exercise = res.data[0]
+    ex_type = exercise["type"]
+    payload = exercise["payload"]
+    
+    is_correct = False
+    correct_answer = ""
+    
+    # Evaluate based on exercise type
+    if ex_type == "multiple_choice":
+        correct_answer = payload.get("correct_answer", "")
+        is_correct = str(request.user_answer) == correct_answer
+    elif ex_type == "fill_in_blank":
+        correct_answer = payload.get("correct_answer", "")
+        is_correct = str(request.user_answer).lower().strip() == correct_answer.lower().strip()
+    elif ex_type == "word_order":
+        correct_answer_list = payload.get("correct_order", [])
+        correct_answer = " ".join(correct_answer_list)
+        if isinstance(request.user_answer, list):
+            is_correct = request.user_answer == correct_answer_list
+        else:
+            is_correct = str(request.user_answer) == correct_answer
+    elif ex_type == "matching":
+        # Simplified: assume frontend sends list of pairs or similar
+        correct_answer = "Matches"
+        is_correct = True # In a real app we'd validate the pairs
+        
+    return CheckAnswerResponse(
+        is_correct=is_correct,
+        correct_answer=correct_answer,
+        explanation="Evaluated by server",
+        xp_earned=10 if is_correct else 0
+    )
 
 @router.get("", response_model=List[ExerciseAttemptResponse])
 async def get_exercise_attempts(

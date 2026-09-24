@@ -1,0 +1,6 @@
+{
+  "name": "Verba - AI Language Learning",
+  "description": "Adaptive AI-powered language-learning experience with interactive quizzes, real-time feedback, word puzzles, and personalized review.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
