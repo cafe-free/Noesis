@@ -39,7 +39,7 @@ export const Navbar: React.FC = () => {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-400 flex items-center justify-center text-white shadow-sm shadow-teal-500/30 group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5" />
           </div>
-          <span className="font-display tracking-tight text-2xl font-bold">Verba</span>
+          <span className="font-display tracking-tight text-2xl font-bold">Noesis</span>
         </Link>
 
         {/* Zone 2: Navigation Links */}

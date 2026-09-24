@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('verba_theme') as Theme;
+      const saved = (localStorage.getItem('noesis_theme') || localStorage.getItem('verba_theme')) as Theme;
       if (saved === 'dark' || saved === 'light') return saved;
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
@@ -27,7 +27,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('verba_theme', theme);
+    localStorage.setItem('noesis_theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

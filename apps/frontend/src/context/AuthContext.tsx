@@ -16,6 +16,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const STORAGE_KEY_TOKEN = 'noesis_auth_token';
+const STORAGE_KEY_USER = 'noesis_user_profile';
+const STORAGE_KEY_LOGGED_OUT = 'noesis_explicit_logged_out';
+
+// Backward compatibility keys
+const LEGACY_TOKEN = 'verba_auth_token';
+const LEGACY_USER = 'verba_user_profile';
+const LEGACY_LOGGED_OUT = 'verba_explicit_logged_out';
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(STORAGE_KEY_TOKEN) || localStorage.getItem(LEGACY_TOKEN);
+}
+
+function getStoredLoggedOut(): boolean {
+  return (
+    localStorage.getItem(STORAGE_KEY_LOGGED_OUT) === 'true' ||
+    localStorage.getItem(LEGACY_LOGGED_OUT) === 'true'
+  );
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -30,10 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(user);
         } else {
           // Pre-populate mock user for smooth preview experience unless explicitly logged out
-          const isExplicitLoggedOut = localStorage.getItem('verba_explicit_logged_out');
+          const isExplicitLoggedOut = getStoredLoggedOut();
           if (!isExplicitLoggedOut) {
-            localStorage.setItem('verba_auth_token', 'mock_jwt_token_brian');
-            localStorage.setItem('verba_user_profile', JSON.stringify(MOCK_USER));
+            localStorage.setItem(STORAGE_KEY_TOKEN, 'mock_jwt_token_brian');
+            localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(MOCK_USER));
             setCurrentUser(MOCK_USER);
           }
         }
@@ -48,7 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (creds: LoginCredentials) => {
     setIsLoading(true);
-    localStorage.removeItem('verba_explicit_logged_out');
+    localStorage.removeItem(STORAGE_KEY_LOGGED_OUT);
+    localStorage.removeItem(LEGACY_LOGGED_OUT);
     try {
       const res = await loginUser(creds);
       setCurrentUser(res.user);
@@ -59,7 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (creds: RegisterCredentials) => {
     setIsLoading(true);
-    localStorage.removeItem('verba_explicit_logged_out');
+    localStorage.removeItem(STORAGE_KEY_LOGGED_OUT);
+    localStorage.removeItem(LEGACY_LOGGED_OUT);
     try {
       const res = await registerUser(creds);
       setCurrentUser(res.user);
@@ -70,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setIsLoading(true);
-    localStorage.setItem('verba_explicit_logged_out', 'true');
+    localStorage.setItem(STORAGE_KEY_LOGGED_OUT, 'true');
     try {
       await logoutUser();
       setCurrentUser(null);
@@ -81,7 +103,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const demoLogin = async () => {
     setIsLoading(true);
-    localStorage.removeItem('verba_explicit_logged_out');
+    localStorage.removeItem(STORAGE_KEY_LOGGED_OUT);
+    localStorage.removeItem(LEGACY_LOGGED_OUT);
     try {
       await login({ email: 'brian24564L@gmail.com' });
     } finally {
@@ -93,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...updates };
-      localStorage.setItem('verba_user_profile', JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
       return updated;
     });
   };

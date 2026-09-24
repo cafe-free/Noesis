@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Clock, Target, Sparkles, ArrowRight, RotateCcw } from 'lucide-react';
+import { Trophy, ArrowRight, RotateCcw } from 'lucide-react';
 import { QuizAttemptResult } from '../../types';
 import { Button } from '../ui/Button';
 import { sound } from '../../lib/sound';
+import { QuizResultStats } from './QuizResultStats';
 
 interface QuizResultProps {
   result: QuizAttemptResult;
@@ -63,45 +64,13 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       </p>
 
       {/* Main Stats Grid */}
-      <div className="w-full grid grid-cols-3 gap-3 mb-8">
-        {/* Accuracy */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-          <div className="flex items-center gap-1 text-slate-400 mb-1">
-            <Target className="w-4 h-4 text-teal-500" />
-            <span className="text-xs font-semibold">Accuracy</span>
-          </div>
-          <span className="text-2xl font-extrabold text-teal-600 dark:text-teal-400 tabular-nums">
-            {result.accuracyPercentage}%
-          </span>
-          <span className="text-[11px] font-medium text-slate-400 mt-0.5">
-            {result.score} / {result.totalQuestions}
-          </span>
-        </div>
-
-        {/* XP Gained */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-          <div className="flex items-center gap-1 text-slate-400 mb-1">
-            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
-            <span className="text-xs font-semibold">Total XP</span>
-          </div>
-          <span className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
-            +{result.xpGained}
-          </span>
-          <span className="text-[11px] font-medium text-slate-400 mt-0.5">XP earned</span>
-        </div>
-
-        {/* Time */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-          <div className="flex items-center gap-1 text-slate-400 mb-1">
-            <Clock className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-semibold">Time</span>
-          </div>
-          <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-200 tabular-nums">
-            {formatTime(result.timeSpentSeconds)}
-          </span>
-          <span className="text-[11px] font-medium text-slate-400 mt-0.5">Duration</span>
-        </div>
-      </div>
+      <QuizResultStats
+        accuracyPercentage={result.accuracyPercentage}
+        score={result.score}
+        totalQuestions={result.totalQuestions}
+        xpGained={result.xpGained}
+        timeSpentSeconds={result.timeSpentSeconds}
+      />
 
       {/* Action Buttons */}
       <div className="w-full flex flex-col gap-3">
