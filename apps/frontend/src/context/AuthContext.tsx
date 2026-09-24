@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { getCurrentUser, loginUser, logoutUser, registerUser, LoginCredentials, RegisterCredentials } from '../lib/api/auth';
-import { MOCK_USER } from '../lib/mock/data';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -44,18 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async function initAuth() {
       try {
         const user = await getCurrentUser();
-        // If not logged in yet, default to MOCK_USER for effortless instant prototyping experience if token exists,
-        // or check if there is an existing session
         if (user) {
           setCurrentUser(user);
         } else {
-          // Pre-populate mock user for smooth preview experience unless explicitly logged out
-          const isExplicitLoggedOut = getStoredLoggedOut();
-          if (!isExplicitLoggedOut) {
-            localStorage.setItem(STORAGE_KEY_TOKEN, 'mock_jwt_token_brian');
-            localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(MOCK_USER));
-            setCurrentUser(MOCK_USER);
-          }
+          setCurrentUser(null);
         }
       } catch {
         setCurrentUser(null);
@@ -106,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(STORAGE_KEY_LOGGED_OUT);
     localStorage.removeItem(LEGACY_LOGGED_OUT);
     try {
-      await login({ email: 'brian24564L@gmail.com' });
+      await login({ email: 'alex@example.com', password: 'password123' });
     } finally {
       setIsLoading(false);
     }

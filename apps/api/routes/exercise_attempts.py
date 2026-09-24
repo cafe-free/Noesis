@@ -47,26 +47,52 @@ async def check_exercise_answer(
     # Evaluate based on exercise type
     if ex_type == "multiple_choice":
         correct_answer = payload.get("correct_answer", "")
-        is_correct = str(request.user_answer) == correct_answer
+        is_correct = str(request.user_answer).strip() == str(correct_answer).strip()
+        explanation = payload.get("explanation") or (
+            "Great job! Accurate translation." if is_correct else f"The correct answer is '{correct_answer}'."
+        )
     elif ex_type == "fill_in_blank":
         correct_answer = payload.get("correct_answer", "")
-        is_correct = str(request.user_answer).lower().strip() == correct_answer.lower().strip()
+        is_correct = str(request.user_answer).lower().strip() == str(correct_answer).lower().strip()
+        explanation = payload.get("explanation") or (
+            "Perfect! You filled in the exact grammatical form." if is_correct else f"Expected '{correct_answer}'."
+        )
     elif ex_type == "word_order":
         correct_answer_list = payload.get("correct_order", [])
         correct_answer = " ".join(correct_answer_list)
         if isinstance(request.user_answer, list):
             is_correct = request.user_answer == correct_answer_list
         else:
-            is_correct = str(request.user_answer) == correct_answer
+            is_correct = str(request.user_answer).strip() == correct_answer.strip()
+        explanation = payload.get("explanation") or (
+            "Well done! Natural word order." if is_correct else f"Correct sequence: {correct_answer}"
+        )
     elif ex_type == "matching":
-        # Simplified: assume frontend sends list of pairs or similar
-        correct_answer = "Matches"
-        is_correct = True # In a real app we'd validate the pairs
-        
+        pairs = payload.get("pairs", [])
+        # pairs is [{'left': 'Coffee', 'right': 'El café'}, ...]
+        # user_answer is {'p0': 'El café', ...} or similar dict
+        pair_dict = {p.get("left"): p.get("right") for p in pairs if isinstance(p, dict)}
+        if isinstance(request.user_answer, dict) and request.user_answer:
+            # Check matches
+            all_match = True
+            for k, v in request.user_answer.items():
+                expected = pair_dict.get(k)
+                if expected and expected != v:
+                    all_match = False
+            is_correct = all_match
+        else:
+            is_correct = True
+        correct_answer = ", ".join(f"{p.get('left')} = {p.get('right')}" for p in pairs if isinstance(p, dict))
+        explanation = "All terms matched correctly!" if is_correct else "Review the vocabulary pairings."
+    else:
+        is_correct = True
+        correct_answer = str(request.user_answer)
+        explanation = "Good effort!"
+
     return CheckAnswerResponse(
         is_correct=is_correct,
         correct_answer=correct_answer,
-        explanation="Evaluated by server",
+        explanation=explanation,
         xp_earned=10 if is_correct else 0
     )
 

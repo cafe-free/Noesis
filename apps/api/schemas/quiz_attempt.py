@@ -15,9 +15,14 @@ class QuizAttemptBase(BaseModel):
 
 
 class QuizAttemptCreate(BaseModel):
-    user_id: UUID
     quiz_id: UUID
+    user_id: Optional[UUID] = None
+    score: Optional[float] = None
     total_questions: Optional[int] = None
+    correct_answers: Optional[int] = None
+    completed_at: Optional[datetime] = None
+    time_spent_seconds: Optional[int] = None
+    mistakes: Optional[List[dict]] = None
 
 
 class QuizAttemptUpdate(BaseModel):

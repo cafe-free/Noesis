@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   HeroSection,
-  InteractivePreviewSection,
   HowItWorksSection,
   ExerciseTypesSection,
   CtaSection,

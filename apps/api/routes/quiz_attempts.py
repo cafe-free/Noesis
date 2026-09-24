@@ -1,4 +1,5 @@
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
@@ -53,14 +54,43 @@ async def get_quiz_attempt(
 @router.post("", response_model=QuizAttemptResponse, status_code=status.HTTP_201_CREATED)
 async def create_quiz_attempt(
     attempt_in: QuizAttemptCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
     db: Client = Depends(get_supabase),
 ):
     payload = attempt_in.model_dump(mode="json")
+    mistakes = payload.pop("mistakes", None)
+    payload.pop("time_spent_seconds", None)
+
+    if not payload.get("user_id"):
+        payload["user_id"] = str(current_user["id"])
+    if not payload.get("completed_at"):
+        payload["completed_at"] = datetime.now(timezone.utc).isoformat()
+
     res = db.table("quiz_attempts").insert(payload).execute()
     if not res.data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create quiz attempt")
     attempt = res.data[0]
-    attempt["exercise_attempts"] = []
+    attempt_id = attempt["id"]
+
+    # Record mistakes / exercise attempts if provided
+    exercise_attempts = []
+    if mistakes and isinstance(mistakes, list):
+        for m in mistakes:
+            ex_id = m.get("exerciseId") or m.get("exercise_id")
+            if ex_id:
+                try:
+                    ea_res = db.table("exercise_attempts").insert({
+                        "quiz_attempt_id": str(attempt_id),
+                        "exercise_id": str(ex_id),
+                        "answer": str(m.get("userAnswer") or m.get("user_answer") or ""),
+                        "is_correct": False,
+                    }).execute()
+                    if ea_res.data:
+                        exercise_attempts.append(ea_res.data[0])
+                except Exception:
+                    pass
+
+    attempt["exercise_attempts"] = exercise_attempts
     return attempt
 
 

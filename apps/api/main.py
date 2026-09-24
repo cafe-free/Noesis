@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -12,8 +13,17 @@ from apps.api.routes.exercises import router as exercises_router
 from apps.api.routes.quiz_attempts import router as quiz_attempts_router
 from apps.api.routes.exercise_attempts import router as exercise_attempts_router
 from apps.api.routes.generation_jobs import router as generation_jobs_router
+from apps.api.routes.progress import router as progress_router
 
 app = FastAPI(title=settings.PROJECT_NAME, version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -25,6 +35,7 @@ app.include_router(exercises_router)
 app.include_router(quiz_attempts_router)
 app.include_router(exercise_attempts_router)
 app.include_router(generation_jobs_router)
+app.include_router(progress_router)
 
 # Mount static asset directory
 if STATIC_DIR.exists():
