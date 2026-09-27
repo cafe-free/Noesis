@@ -18,6 +18,11 @@ class Settings(BaseSettings):
 
     DATABASE_URL: Optional[str] = None
 
+    GEMINI_API_KEY: Optional[str] = None
+    GOOGLE_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    MAX_LLM_RETRIES: int = 2
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

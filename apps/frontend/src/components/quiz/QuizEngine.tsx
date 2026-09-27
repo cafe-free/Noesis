@@ -26,6 +26,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({ quiz, onExit }) => {
   const [score, setScore] = useState(0);
   const [hearts, setHearts] = useState(currentUser?.hearts ?? 5);
   const [mistakes, setMistakes] = useState<MistakeReviewItem[]>([]);
+  const [recordedAnswers, setRecordedAnswers] = useState<Array<{ exerciseId: string; userAnswer: string; isCorrect: boolean }>>([]);
   const [quizResult, setQuizResult] = useState<QuizAttemptResult | null>(null);
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
 
@@ -74,24 +75,33 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({ quiz, onExit }) => {
       setFeedback(response);
       setStatus('feedback');
 
+      // Format user answer representation
+      let userAnsStr = '';
+      if (Array.isArray(selectedAnswer)) {
+        userAnsStr = selectedAnswer.join(' ');
+      } else if (typeof selectedAnswer === 'object' && selectedAnswer !== null) {
+        userAnsStr = Object.entries(selectedAnswer as Record<string, string>)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ');
+      } else {
+        userAnsStr = String(selectedAnswer || '');
+      }
+
+      setRecordedAnswers((prev) => [
+        ...prev,
+        {
+          exerciseId: currentExercise.id,
+          userAnswer: userAnsStr,
+          isCorrect: response.isCorrect,
+        },
+      ]);
+
       if (response.isCorrect) {
         sound.playCorrect();
         setScore((prev) => prev + 1);
       } else {
         sound.playIncorrect();
         setHearts((prev) => Math.max(0, prev - 1));
-
-        // Format user answer representation
-        let userAnsStr = '';
-        if (Array.isArray(selectedAnswer)) {
-          userAnsStr = selectedAnswer.join(' ');
-        } else if (typeof selectedAnswer === 'object' && selectedAnswer !== null) {
-          userAnsStr = Object.entries(selectedAnswer as Record<string, string>)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ');
-        } else {
-          userAnsStr = String(selectedAnswer || '');
-        }
 
         const newMistake: MistakeReviewItem = {
           exerciseId: currentExercise.id,
@@ -130,6 +140,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({ quiz, onExit }) => {
           score,
           timeSpentSeconds: timeSpent,
           mistakes,
+          answers: recordedAnswers,
         });
 
         // Update user XP & streak in context

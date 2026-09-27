@@ -1,24 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getWeaknesses } from '../lib/api/progress';
-import { WeakAreaItem } from '../types';
-import { ProgressStatsGrid, WeakAreasBreakdown } from '../components/progress';
+import { listUserAttempts } from '../lib/api/attempts';
+import { QuizAttemptResult, WeakAreaItem } from '../types';
+import {
+  ProgressStatsGrid,
+  WeakAreasBreakdown,
+  QuizHistorySection,
+} from '../components/progress';
 
 export const ProgressPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [weaknesses, setWeaknesses] = useState<WeakAreaItem[]>([]);
-  const [, setIsLoading] = useState(true);
+  const [attempts, setAttempts] = useState<QuizAttemptResult[]>([]);
+  const [isLoadingAttempts, setIsLoadingAttempts] = useState(true);
 
   useEffect(() => {
-    async function load() {
+    async function loadData() {
       try {
-        const data = await getWeaknesses();
-        setWeaknesses(data);
+        const [weaknessData, attemptData] = await Promise.all([
+          getWeaknesses(),
+          listUserAttempts(),
+        ]);
+        setWeaknesses(weaknessData);
+        setAttempts(attemptData);
+      } catch {
+        // Fallback
       } finally {
-        setIsLoading(false);
+        setIsLoadingAttempts(false);
       }
     }
-    load();
+    loadData();
   }, []);
 
   return (
@@ -34,7 +46,16 @@ export const ProgressPage: React.FC = () => {
         </div>
 
         {/* Highlight Stats Grid */}
-        <ProgressStatsGrid currentUser={currentUser} />
+        <ProgressStatsGrid
+          currentUser={currentUser}
+          completedQuizzes={attempts.length || 1}
+        />
+
+        {/* Completed Quiz Records & Review */}
+        <QuizHistorySection
+          attempts={attempts}
+          isLoading={isLoadingAttempts}
+        />
 
         {/* Weak Areas Breakdown */}
         <WeakAreasBreakdown weaknesses={weaknesses} />

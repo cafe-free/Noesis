@@ -28,12 +28,24 @@ async def get_quizzes(
         query = query.eq("topic", topic)
     if lesson_id:
         query = query.eq("lesson_id", str(lesson_id))
+    query = query.order("created_at", desc=True)
     quizzes_res = query.execute()
     quizzes = quizzes_res.data or []
 
+    quiz_ids = [str(q["id"]) for q in quizzes]
+    ex_count_map = {}
+    if quiz_ids:
+        ex_res = db.table("exercises").select("quiz_id, id").in_("quiz_id", quiz_ids).execute()
+        for ex in ex_res.data or []:
+            qid = str(ex.get("quiz_id"))
+            ex_count_map[qid] = ex_count_map.get(qid, 0) + 1
+
     for quiz in quizzes:
-        if "exercises" not in quiz:
-            quiz["exercises"] = []
+        count = ex_count_map.get(str(quiz["id"]), 0)
+        quiz["exercises"] = [
+            {"id": str(UUID(int=i + 1)), "quiz_id": quiz["id"], "type": "multiple_choice", "position": i + 1, "prompt": "", "payload": {}}
+            for i in range(count)
+        ]
     return quizzes
 
 

@@ -10,7 +10,7 @@ interface WeakAreasBannerProps {
 
 export const WeakAreasBanner: React.FC<WeakAreasBannerProps> = ({
   weaknesses,
-  reviewPath = '/review/attempt-sample-1',
+  reviewPath = '/review/latest',
 }) => {
   if (!weaknesses || weaknesses.length === 0) return null;
 

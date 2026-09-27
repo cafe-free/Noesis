@@ -96,6 +96,15 @@ export interface MistakeReviewItem {
   explanation: string;
 }
 
+export interface ExerciseAttemptItem {
+  exerciseId: string;
+  prompt: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  explanation?: string;
+}
+
 export interface QuizAttemptResult {
   attemptId: string;
   quizId: string;
@@ -107,6 +116,7 @@ export interface QuizAttemptResult {
   xpGained: number;
   timeSpentSeconds: number;
   mistakes: MistakeReviewItem[];
+  allAnswers?: ExerciseAttemptItem[];
   completedAt: string;
 }
 

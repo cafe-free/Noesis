@@ -23,6 +23,7 @@ class QuizAttemptCreate(BaseModel):
     completed_at: Optional[datetime] = None
     time_spent_seconds: Optional[int] = None
     mistakes: Optional[List[dict]] = None
+    answers: Optional[List[dict]] = None
 
 
 class QuizAttemptUpdate(BaseModel):
@@ -41,3 +42,5 @@ class QuizAttemptInDB(QuizAttemptBase):
 
 class QuizAttemptResponse(QuizAttemptInDB):
     exercise_attempts: List[ExerciseAttemptResponse] = []
+    quiz_title: Optional[str] = None
+    language: Optional[str] = None

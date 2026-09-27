@@ -30,4 +30,7 @@ class ExerciseAttemptInDB(ExerciseAttemptBase):
 
 
 class ExerciseAttemptResponse(ExerciseAttemptInDB):
-    pass
+    prompt: Optional[str] = None
+    correct_answer: Optional[str] = None
+    explanation: Optional[str] = None
+    concept: Optional[str] = None

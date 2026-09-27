@@ -140,6 +140,9 @@ uv run python script.py
   - `matching`: Vocabulary pair matching across left and right columns.
 
 ### 4. Background AI Quiz Generation
+- Powered by the official **Google Gen AI SDK** (`google-genai`), using structured outputs (`response_schema=GeneratedQuizContent`) against Gemini models (`gemini-2.5-flash`).
+- API keys: configured via `GEMINI_API_KEY` or `GOOGLE_API_KEY` in environment / `.env`.
+- Service implementation: `apps/api/services/generation.py` handles model prompting, structured parsing, database insertion, and seamless fallback if unconfigured or rate-limited.
 - `POST /generation-jobs` receives `{ language, level, topic, count }`.
 - Jobs return `status: "in_progress"` or `"completed"` with `quiz_id`.
 - Frontend polls `GET /generation-jobs/{jobId}` until completed, then navigates to `/quiz/{quiz_id}`.
