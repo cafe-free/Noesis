@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: Optional[str] = None
     GOOGLE_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemma-4"
     MAX_LLM_RETRIES: int = 2
 
     model_config = SettingsConfigDict(

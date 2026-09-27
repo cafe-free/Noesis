@@ -53,11 +53,22 @@ def test_generation_schemas():
 def test_fallback_generation_service():
     service = QuizGenerationService()
     content = service.generate_fallback_content("Spanish", "A1", "Food & Dining", 4)
-    assert content.title == "Food & Dining Essentials"
+    assert "Spanish" in content.title or "Food & Dining" in content.title
     assert len(content.multiple_choice_exercises) >= 1
     assert len(content.fill_in_blank_exercises) >= 1
     assert len(content.word_order_exercises) >= 1
     assert len(content.matching_exercises) >= 1
+
+
+def test_japanese_generation_service():
+    service = QuizGenerationService()
+    content = service.generate_fallback_content("Japanese", "A1", "At the Coffee Shop", 4)
+    assert "Japanese" in content.title
+    mcq = content.multiple_choice_exercises[0]
+    assert any("コーヒー" in opt for opt in mcq.options)
+    assert not any("s'il vous plaît" in opt for opt in mcq.options)
+    matching = content.matching_exercises[0]
+    assert any("コーヒー" in p.right for p in matching.pairs)
 
 
 def test_convert_to_exercise_records():
