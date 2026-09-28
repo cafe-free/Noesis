@@ -1,24 +1,25 @@
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Union
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # --- Payload Models ---
 
+
 class MultipleChoicePayload(BaseModel):
-    options: List[str]
+    options: list[str]
     correct_answer: str
 
 
 class FillInBlankPayload(BaseModel):
     correct_answer: str
-    hint: Optional[str] = None
+    hint: str | None = None
 
 
 class WordOrderPayload(BaseModel):
-    tokens: List[str]
-    correct_order: List[str]
+    tokens: list[str]
+    correct_order: list[str]
 
 
 class MatchingPair(BaseModel):
@@ -27,7 +28,7 @@ class MatchingPair(BaseModel):
 
 
 class MatchingPayload(BaseModel):
-    pairs: List[MatchingPair]
+    pairs: list[MatchingPair]
 
 
 # Tagged Union for payload schemas
@@ -38,16 +39,19 @@ ExercisePayloadType = Union[
     MatchingPayload,
 ]
 
-ExerciseTypeLiteral = Literal["multiple_choice", "fill_in_blank", "word_order", "matching"]
+ExerciseTypeLiteral = Literal[
+    "multiple_choice", "fill_in_blank", "word_order", "matching"
+]
 
 
 # --- Base & DB Schemas ---
+
 
 class ExerciseBase(BaseModel):
     type: ExerciseTypeLiteral
     position: int = Field(ge=1, description="1-based position index in the quiz")
     prompt: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
     @model_validator(mode="after")
     def validate_payload_matches_type(self) -> "ExerciseBase":
@@ -70,10 +74,10 @@ class ExerciseCreate(ExerciseBase):
 
 
 class ExerciseUpdate(BaseModel):
-    type: Optional[ExerciseTypeLiteral] = None
-    position: Optional[int] = Field(default=None, ge=1)
-    prompt: Optional[str] = None
-    payload: Optional[Dict[str, Any]] = None
+    type: ExerciseTypeLiteral | None = None
+    position: int | None = Field(default=None, ge=1)
+    prompt: str | None = None
+    payload: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def validate_payload_if_present(self) -> "ExerciseUpdate":
@@ -111,19 +115,20 @@ class ExerciseInDB(ExerciseBase):
 
 # --- Public API Response Schema ---
 
+
 class ExerciseResponse(BaseModel):
     id: UUID
-    quiz_id: Optional[UUID] = None
+    quiz_id: UUID | None = None
     type: str
     position: int
     prompt: str
-    payload: Dict[str, Any]
-    created_at: Optional[datetime] = None
+    payload: dict[str, Any]
+    created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def sanitize(cls, exercise: Union[ExerciseInDB, Dict[str, Any]]) -> "ExerciseResponse":
+    def sanitize(cls, exercise: ExerciseInDB | dict[str, Any]) -> "ExerciseResponse":
         """Strips correct answer key(s) from payload before sending to client."""
         if isinstance(exercise, dict):
             ex_id = exercise["id"]
@@ -149,8 +154,14 @@ class ExerciseResponse(BaseModel):
         elif ex_type == "matching":
             pairs = payload.get("pairs", [])
             payload = {
-                "left_items": [p["left"] if isinstance(p, dict) else getattr(p, "left", "") for p in pairs],
-                "right_items": [p["right"] if isinstance(p, dict) else getattr(p, "right", "") for p in pairs],
+                "left_items": [
+                    p["left"] if isinstance(p, dict) else getattr(p, "left", "")
+                    for p in pairs
+                ],
+                "right_items": [
+                    p["right"] if isinstance(p, dict) else getattr(p, "right", "")
+                    for p in pairs
+                ],
             }
 
         return cls(

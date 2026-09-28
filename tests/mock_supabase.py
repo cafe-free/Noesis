@@ -1,22 +1,22 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 
 class MockResponse:
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: list[dict[str, Any]]):
         self.data = data
 
 
 class MockTableQuery:
-    def __init__(self, table_name: str, db_store: Dict[str, List[Dict[str, Any]]]):
+    def __init__(self, table_name: str, db_store: dict[str, list[dict[str, Any]]]):
         self.table_name = table_name
         self.db_store = db_store
-        self._filters: List[tuple[str, Any]] = []
-        self._order_by: Optional[str] = None
+        self._filters: list[tuple[str, Any]] = []
+        self._order_by: str | None = None
         self._action: str = "select"
-        self._insert_data: Optional[Any] = None
-        self._update_data: Optional[Dict[str, Any]] = None
+        self._insert_data: Any | None = None
+        self._update_data: dict[str, Any] | None = None
 
     def select(self, columns: str = "*") -> "MockTableQuery":
         self._action = "select"
@@ -27,7 +27,7 @@ class MockTableQuery:
         self._insert_data = data
         return self
 
-    def update(self, data: Dict[str, Any]) -> "MockTableQuery":
+    def update(self, data: dict[str, Any]) -> "MockTableQuery":
         self._action = "update"
         self._update_data = data
         return self
@@ -56,8 +56,12 @@ class MockTableQuery:
             return MockResponse(res)
 
         elif self._action == "insert":
-            now_str = datetime.now(timezone.utc).isoformat()
-            items = self._insert_data if isinstance(self._insert_data, list) else [self._insert_data]
+            now_str = datetime.now(UTC).isoformat()
+            items = (
+                self._insert_data
+                if isinstance(self._insert_data, list)
+                else [self._insert_data]
+            )
             created = []
             for item in items:
                 record = dict(item)
@@ -65,7 +69,9 @@ class MockTableQuery:
                     record["id"] = str(uuid.uuid4())
                 if "created_at" not in record or not record["created_at"]:
                     record["created_at"] = now_str
-                if self.table_name in ("users", "lessons") and ("updated_at" not in record or not record["updated_at"]):
+                if self.table_name in ("users", "lessons") and (
+                    "updated_at" not in record or not record["updated_at"]
+                ):
                     record["updated_at"] = now_str
                 if self.table_name == "generation_jobs" and "status" not in record:
                     record["status"] = "pending"
@@ -76,7 +82,7 @@ class MockTableQuery:
             return MockResponse(created)
 
         elif self._action == "update":
-            now_str = datetime.now(timezone.utc).isoformat()
+            now_str = datetime.now(UTC).isoformat()
             updated = []
             for r in records:
                 matches = all(str(r.get(col)) == val for col, val in self._filters)
@@ -104,7 +110,7 @@ class MockTableQuery:
 
 class MockSupabaseClient:
     def __init__(self):
-        self.store: Dict[str, List[Dict[str, Any]]] = {}
+        self.store: dict[str, list[dict[str, Any]]] = {}
 
     def table(self, table_name: str) -> MockTableQuery:
         return MockTableQuery(table_name, self.store)

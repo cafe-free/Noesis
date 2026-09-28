@@ -1,10 +1,8 @@
-import json
 import logging
 import os
 import random
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from uuid import UUID
+from datetime import UTC, datetime
+from typing import Any
 
 from supabase import Client
 
@@ -23,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class QuizGenerationService:
-    def __init__(self, db: Optional[Client] = None):
+    def __init__(self, db: Client | None = None):
         self.db = db or get_supabase()
         self.api_key = (
             settings.GEMINI_API_KEY
@@ -35,6 +33,7 @@ class QuizGenerationService:
         if self.api_key:
             try:
                 from google import genai
+
                 self.client = genai.Client(api_key=self.api_key)
                 logger.info("Google GenAI client initialized successfully.")
             except Exception as e:
@@ -45,7 +44,7 @@ class QuizGenerationService:
 
     async def generate_with_gemini(
         self, language: str, level: str, topic: str, count: int
-    ) -> Optional[GeneratedQuizContent]:
+    ) -> GeneratedQuizContent | None:
         """Generate structured quiz content using the Google GenAI SDK with Gemma 4."""
         if not self.client:
             return None
@@ -113,12 +112,16 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
 
                 if response and response.text:
                     parsed = GeneratedQuizContent.model_validate_json(response.text)
-                    logger.info(f"Successfully generated quiz content using model '{model_name}'.")
+                    logger.info(
+                        f"Successfully generated quiz content using model '{model_name}'."
+                    )
                     return parsed
             except Exception as exc:
                 logger.warning(f"Generation with model '{model_name}' failed: {exc}")
 
-        logger.warning("All GenAI model attempts exhausted. Falling back to dynamic curriculum builder.")
+        logger.warning(
+            "All GenAI model attempts exhausted. Falling back to dynamic curriculum builder."
+        )
         return None
 
     def generate_fallback_content(
@@ -140,7 +143,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                     "お茶をください (Ocha o kudasai)",
                     "お水をください (Omizu o kudasai)",
                 ]
-                fib_prompt = "Complete the phrase: \"二人用のテーブルを_____ (A table for two, please)\""
+                fib_prompt = 'Complete the phrase: "二人用のテーブルを_____ (A table for two, please)"'
                 fib_answer = "お願いします"
                 fib_hint = "Japanese for 'please / I request' (onegaishimasu)"
                 wo_prompt = "Arrange the sentence: 'The check, please.'"
@@ -159,7 +162,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                     "これは高いです (Kore wa takai desu)",
                     "これは甘いです (Kore wa amai desu)",
                 ]
-                fib_prompt = "Complete the phrase: \"ごちそう_____でした (Thank you for the meal)\""
+                fib_prompt = 'Complete the phrase: "ごちそう_____でした (Thank you for the meal)"'
                 fib_answer = "さま"
                 fib_hint = "Honorific suffix in standard meal greeting (sama)"
                 wo_prompt = "Arrange the sentence: 'I would like to order ramen.'"
@@ -178,7 +181,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                     "何時ですか？ (Nan-ji desu ka?)",
                     "トイレはどこですか？ (Toire wa doko desu ka?)",
                 ]
-                fib_prompt = "Complete the phrase: \"東京行きの切符を_____ (A ticket to Tokyo, please)\""
+                fib_prompt = 'Complete the phrase: "東京行きの切符を_____ (A ticket to Tokyo, please)"'
                 fib_answer = "一枚ください"
                 fib_hint = "Japanese for 'one ticket, please' (ichimai kudasai)"
                 wo_prompt = "Arrange the sentence: 'Where is the station?'"
@@ -197,7 +200,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                     "こんにちは (Konnichiwa)",
                     "こんばんは (Konbanwa)",
                 ]
-                fib_prompt = "Complete the phrase: \"初めまして、どうぞよろしく_____ (Nice to meet you)\""
+                fib_prompt = 'Complete the phrase: "初めまして、どうぞよろしく_____ (Nice to meet you)"'
                 fib_answer = "お願いします"
                 fib_hint = "Japanese for 'please / I request' (onegaishimasu)"
                 wo_prompt = "Arrange the sentence: 'I study Japanese every day.'"
@@ -214,8 +217,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
         elif lang == "Spanish":
             if "coffee" in t or "cafe" in t:
                 mcq_prompt = "How do you order a coffee in Spanish?"
-                mcq_options = ["Un café, por favor.", "Una cerveza, gracias.", "Una manzana, por favor."]
-                fib_prompt = "Complete the phrase: \"Una mesa para dos, por _____\""
+                mcq_options = [
+                    "Un café, por favor.",
+                    "Una cerveza, gracias.",
+                    "Una manzana, por favor.",
+                ]
+                fib_prompt = 'Complete the phrase: "Una mesa para dos, por _____"'
                 fib_answer = "favor"
                 fib_hint = "Spanish for 'please'"
                 wo_prompt = "Arrange the sentence: 'The check, please.'"
@@ -229,8 +236,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             elif "food" in t or "din" in t or "restaurant" in t:
                 mcq_prompt = "How do you say 'I want to order food' in Spanish?"
-                mcq_options = ["Quiero ordenar la comida.", "Voy a dormir ahora.", "Me gusta el carro."]
-                fib_prompt = "Complete the phrase: \"El plato del _____ (day)\""
+                mcq_options = [
+                    "Quiero ordenar la comida.",
+                    "Voy a dormir ahora.",
+                    "Me gusta el carro.",
+                ]
+                fib_prompt = 'Complete the phrase: "El plato del _____ (day)"'
                 fib_answer = "día"
                 fib_hint = "Spanish word for 'day'"
                 wo_prompt = "Arrange the sentence: 'The food is very delicious.'"
@@ -244,8 +255,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             elif "travel" in t or "direction" in t:
                 mcq_prompt = "How do you ask 'Where is the train station?' in Spanish?"
-                mcq_options = ["¿Dónde está la estación de tren?", "¿Cuándo comemos hoy?", "¿Cómo te llamas?"]
-                fib_prompt = "Complete the phrase: \"Gire a la _____ (right)\""
+                mcq_options = [
+                    "¿Dónde está la estación de tren?",
+                    "¿Cuándo comemos hoy?",
+                    "¿Cómo te llamas?",
+                ]
+                fib_prompt = 'Complete the phrase: "Gire a la _____ (right)"'
                 fib_answer = "derecha"
                 fib_hint = "Spanish word for 'right'"
                 wo_prompt = "Arrange the sentence: 'A ticket to Madrid, please.'"
@@ -259,8 +274,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             else:
                 mcq_prompt = "How do you say 'Good morning, how are you?' in Spanish?"
-                mcq_options = ["Buenos días, ¿cómo estás?", "Buenas noches, adiós.", "Hasta luego, gracias."]
-                fib_prompt = "Complete the phrase: \"Mucho _____ (nice to meet you)\""
+                mcq_options = [
+                    "Buenos días, ¿cómo estás?",
+                    "Buenas noches, adiós.",
+                    "Hasta luego, gracias.",
+                ]
+                fib_prompt = 'Complete the phrase: "Mucho _____ (nice to meet you)"'
                 fib_answer = "gusto"
                 fib_hint = "Spanish expression for 'pleasure'"
                 wo_prompt = "Arrange the sentence: 'I speak a little Spanish.'"
@@ -277,8 +296,14 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
         elif lang == "French":
             if "coffee" in t or "cafe" in t:
                 mcq_prompt = "How do you order a coffee in French?"
-                mcq_options = ["Un café, s'il vous plaît.", "Une bière, merci.", "Une pomme, s'il vous plaît."]
-                fib_prompt = "Complete the phrase: \"Une table pour deux, s'il vous _____\""
+                mcq_options = [
+                    "Un café, s'il vous plaît.",
+                    "Une bière, merci.",
+                    "Une pomme, s'il vous plaît.",
+                ]
+                fib_prompt = (
+                    'Complete the phrase: "Une table pour deux, s\'il vous _____"'
+                )
                 fib_answer = "plaît"
                 fib_hint = "French for 'please'"
                 wo_prompt = "Arrange the sentence: 'The check, please.'"
@@ -292,8 +317,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             elif "food" in t or "din" in t or "restaurant" in t:
                 mcq_prompt = "How do you say 'I would like to order' in French?"
-                mcq_options = ["Je voudrais commander.", "Je vais dormir.", "J'aime la voiture."]
-                fib_prompt = "Complete the phrase: \"Le plat du _____ (day)\""
+                mcq_options = [
+                    "Je voudrais commander.",
+                    "Je vais dormir.",
+                    "J'aime la voiture.",
+                ]
+                fib_prompt = 'Complete the phrase: "Le plat du _____ (day)"'
                 fib_answer = "jour"
                 fib_hint = "French word for 'day'"
                 wo_prompt = "Arrange the sentence: 'The food is very delicious.'"
@@ -307,8 +336,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             elif "travel" in t or "direction" in t:
                 mcq_prompt = "How do you ask 'Where is the train station?' in French?"
-                mcq_options = ["Où est la gare?", "Quand mangeons-nous?", "Comment vous appelez-vous?"]
-                fib_prompt = "Complete the phrase: \"Tournez à _____ (right)\""
+                mcq_options = [
+                    "Où est la gare?",
+                    "Quand mangeons-nous?",
+                    "Comment vous appelez-vous?",
+                ]
+                fib_prompt = 'Complete the phrase: "Tournez à _____ (right)"'
                 fib_answer = "droite"
                 fib_hint = "French word for 'right'"
                 wo_prompt = "Arrange the sentence: 'A ticket to Paris, please.'"
@@ -322,8 +355,12 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 ]
             else:
                 mcq_prompt = "How do you say 'Good morning, how are you?' in French?"
-                mcq_options = ["Bonjour, comment allez-vous?", "Bonne nuit, au revoir.", "À bientôt, merci."]
-                fib_prompt = "Complete the phrase: \"Enchanté de faire votre _____ (acquaintance)\""
+                mcq_options = [
+                    "Bonjour, comment allez-vous?",
+                    "Bonne nuit, au revoir.",
+                    "À bientôt, merci.",
+                ]
+                fib_prompt = 'Complete the phrase: "Enchanté de faire votre _____ (acquaintance)"'
                 fib_answer = "connaissance"
                 fib_hint = "Formal French greeting"
                 wo_prompt = "Arrange the sentence: 'I speak a little French.'"
@@ -338,9 +375,9 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
 
         # --- GERMAN ---
         elif lang == "German":
-            mcq_prompt = f"How do you say 'Good morning' in German?"
+            mcq_prompt = "How do you say 'Good morning' in German?"
             mcq_options = ["Guten Morgen", "Gute Nacht", "Auf Wiedersehen"]
-            fib_prompt = "Complete the phrase: \"Eine Tasse Kaffee, _____ (please)\""
+            fib_prompt = 'Complete the phrase: "Eine Tasse Kaffee, _____ (please)"'
             fib_answer = "bitte"
             fib_hint = "German for 'please'"
             wo_prompt = "Arrange the sentence: 'I speak German.'"
@@ -357,7 +394,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
         elif lang == "Italian":
             mcq_prompt = "How do you say 'Good morning' in Italian?"
             mcq_options = ["Buongiorno", "Buonanotte", "Arrivederci"]
-            fib_prompt = "Complete the phrase: \"Un caffè, per _____ (please)\""
+            fib_prompt = 'Complete the phrase: "Un caffè, per _____ (please)"'
             fib_answer = "favore"
             fib_hint = "Italian for 'please'"
             wo_prompt = "Arrange the sentence: 'I speak Italian.'"
@@ -374,8 +411,8 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
         else:
             mcq_prompt = f"How do you say 'Hello' in {lang}?"
             mcq_options = [f"Hello ({lang})", f"Goodbye ({lang})", f"Thanks ({lang})"]
-            fib_prompt = f"Complete the greeting in {lang}: \"_____ (Hello)\""
-            fib_answer = f"Hello"
+            fib_prompt = f'Complete the greeting in {lang}: "_____ (Hello)"'
+            fib_answer = "Hello"
             fib_hint = f"Common greeting in {lang}"
             wo_prompt = f"Arrange the sentence in {lang}: 'I learn {lang}.'"
             wo_order = ["I", "learn", lang]
@@ -421,7 +458,7 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
 
     def _convert_to_exercise_records(
         self, content: GeneratedQuizContent, quiz_id: str, count: int = 4
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transforms GeneratedQuizContent into database exercise row payloads."""
         exercises = []
         pos = 1
@@ -435,32 +472,36 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 opts.append(mcq.correct_answer)
             random.shuffle(opts)
 
-            exercises.append({
-                "quiz_id": quiz_id,
-                "type": "multiple_choice",
-                "position": pos,
-                "prompt": mcq.prompt,
-                "payload": {
-                    "options": opts,
-                    "correct_answer": mcq.correct_answer,
-                },
-            })
+            exercises.append(
+                {
+                    "quiz_id": quiz_id,
+                    "type": "multiple_choice",
+                    "position": pos,
+                    "prompt": mcq.prompt,
+                    "payload": {
+                        "options": opts,
+                        "correct_answer": mcq.correct_answer,
+                    },
+                }
+            )
             pos += 1
 
         # 2. Fill in Blank
         for fib in content.fill_in_blank_exercises:
             if pos > count:
                 break
-            exercises.append({
-                "quiz_id": quiz_id,
-                "type": "fill_in_blank",
-                "position": pos,
-                "prompt": fib.prompt,
-                "payload": {
-                    "correct_answer": fib.correct_answer,
-                    "hint": fib.hint,
-                },
-            })
+            exercises.append(
+                {
+                    "quiz_id": quiz_id,
+                    "type": "fill_in_blank",
+                    "position": pos,
+                    "prompt": fib.prompt,
+                    "payload": {
+                        "correct_answer": fib.correct_answer,
+                        "hint": fib.hint,
+                    },
+                }
+            )
             pos += 1
 
         # 3. Word Order
@@ -472,64 +513,80 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
                 tokens.extend(wo.distractors)
             random.shuffle(tokens)
 
-            exercises.append({
-                "quiz_id": quiz_id,
-                "type": "word_order",
-                "position": pos,
-                "prompt": wo.prompt,
-                "payload": {
-                    "tokens": tokens,
-                    "correct_order": wo.correct_order,
-                },
-            })
+            exercises.append(
+                {
+                    "quiz_id": quiz_id,
+                    "type": "word_order",
+                    "position": pos,
+                    "prompt": wo.prompt,
+                    "payload": {
+                        "tokens": tokens,
+                        "correct_order": wo.correct_order,
+                    },
+                }
+            )
             pos += 1
 
         # 4. Matching
         for match in content.matching_exercises:
             if pos > count:
                 break
-            exercises.append({
-                "quiz_id": quiz_id,
-                "type": "matching",
-                "position": pos,
-                "prompt": match.prompt,
-                "payload": {
-                    "pairs": [p.model_dump() for p in match.pairs],
-                },
-            })
+            exercises.append(
+                {
+                    "quiz_id": quiz_id,
+                    "type": "matching",
+                    "position": pos,
+                    "prompt": match.prompt,
+                    "payload": {
+                        "pairs": [p.model_dump() for p in match.pairs],
+                    },
+                }
+            )
             pos += 1
 
         return exercises
 
     async def execute_job(
         self, job_id: str, language: str, level: str, topic: str, count: int = 4
-    ) -> Optional[str]:
+    ) -> str | None:
         """Executes full quiz generation lifecycle and records result in database."""
         try:
             # 1. Update job to in_progress
-            now_iso = datetime.now(timezone.utc).isoformat()
-            self.db.table("generation_jobs").update({
-                "status": "in_progress",
-                "started_at": now_iso,
-            }).eq("id", job_id).execute()
+            now_iso = datetime.now(UTC).isoformat()
+            self.db.table("generation_jobs").update(
+                {
+                    "status": "in_progress",
+                    "started_at": now_iso,
+                }
+            ).eq("id", job_id).execute()
 
             # 2. Generate content (try Google GenAI SDK with Gemma 4 first)
             content = None
             if self.is_ai_available():
-                logger.info(f"Generating quiz with Google GenAI SDK ({settings.GEMINI_MODEL}) for topic='{topic}', lang='{language}'...")
+                logger.info(
+                    f"Generating quiz with Google GenAI SDK ({settings.GEMINI_MODEL}) for topic='{topic}', lang='{language}'..."
+                )
                 content = await self.generate_with_gemini(language, level, topic, count)
 
             if not content:
-                logger.info(f"Using dynamic curriculum engine for quiz generation in {language}...")
+                logger.info(
+                    f"Using dynamic curriculum engine for quiz generation in {language}..."
+                )
                 content = self.generate_fallback_content(language, level, topic, count)
 
             # 3. Insert Quiz record
-            quiz_insert = self.db.table("quizzes").insert({
-                "title": content.title or f"{topic} in {language}",
-                "topic": topic,
-                "language": language,
-                "level": level,
-            }).execute()
+            quiz_insert = (
+                self.db.table("quizzes")
+                .insert(
+                    {
+                        "title": content.title or f"{topic} in {language}",
+                        "topic": topic,
+                        "language": language,
+                        "level": level,
+                    }
+                )
+                .execute()
+            )
 
             if not quiz_insert.data:
                 raise Exception("Failed to insert generated quiz into database")
@@ -537,26 +594,32 @@ REMINDER: Output ONLY {language.upper()} for all target expressions, choices, an
             quiz_id = str(quiz_insert.data[0]["id"])
 
             # 4. Insert Exercises
-            exercise_records = self._convert_to_exercise_records(content, quiz_id, count)
+            exercise_records = self._convert_to_exercise_records(
+                content, quiz_id, count
+            )
             for ex in exercise_records:
                 self.db.table("exercises").insert(ex).execute()
 
             # 5. Mark job completed
-            completed_iso = datetime.now(timezone.utc).isoformat()
-            self.db.table("generation_jobs").update({
-                "status": "completed",
-                "quiz_id": quiz_id,
-                "completed_at": completed_iso,
-            }).eq("id", job_id).execute()
+            completed_iso = datetime.now(UTC).isoformat()
+            self.db.table("generation_jobs").update(
+                {
+                    "status": "completed",
+                    "quiz_id": quiz_id,
+                    "completed_at": completed_iso,
+                }
+            ).eq("id", job_id).execute()
 
             logger.info(f"Quiz generation job {job_id} succeeded with quiz {quiz_id}")
             return quiz_id
 
         except Exception as exc:
             logger.exception(f"Quiz generation job {job_id} failed: {exc}")
-            self.db.table("generation_jobs").update({
-                "status": "failed",
-                "error": str(exc),
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", job_id).execute()
+            self.db.table("generation_jobs").update(
+                {
+                    "status": "failed",
+                    "error": str(exc),
+                    "completed_at": datetime.now(UTC).isoformat(),
+                }
+            ).eq("id", job_id).execute()
             return None

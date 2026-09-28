@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserBase(BaseModel):
     email: EmailStr
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class UserCreate(UserBase):
@@ -14,8 +14,8 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    username: Optional[str] = None
+    email: EmailStr | None = None
+    username: str | None = None
 
 
 class UserInDB(UserBase):
@@ -32,7 +32,7 @@ class UserResponse(UserInDB):
 
 class UserRegistration(BaseModel):
     email: EmailStr
-    username: Optional[str] = None
+    username: str | None = None
     password: str = Field(min_length=8)
 
 

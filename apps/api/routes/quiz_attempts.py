@@ -1,26 +1,30 @@
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
-from apps.api.core.db import get_supabase
 from apps.api.core.auth import get_current_user
-from apps.api.schemas.exercise_attempt import ExerciseAttemptResponse
+from apps.api.core.db import get_supabase
 from apps.api.schemas.quiz_attempt import (
     QuizAttemptCreate,
     QuizAttemptResponse,
     QuizAttemptUpdate,
 )
 
-router = APIRouter(prefix="/quiz-attempts", tags=["quiz-attempts"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/quiz-attempts",
+    tags=["quiz-attempts"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
-@router.get("", response_model=List[QuizAttemptResponse])
+@router.get("", response_model=list[QuizAttemptResponse])
 async def get_quiz_attempts(
-    user_id: Optional[UUID] = None,
-    quiz_id: Optional[UUID] = None,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    user_id: UUID | None = None,
+    quiz_id: UUID | None = None,
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: Client = Depends(get_supabase),
 ):
     query = db.table("quiz_attempts").select("*")
@@ -36,7 +40,12 @@ async def get_quiz_attempts(
     quiz_ids = list({str(a["quiz_id"]) for a in attempts if a.get("quiz_id")})
     quizzes_map = {}
     if quiz_ids:
-        q_res = db.table("quizzes").select("id, title, language, topic").in_("id", quiz_ids).execute()
+        q_res = (
+            db.table("quizzes")
+            .select("id, title, language, topic")
+            .in_("id", quiz_ids)
+            .execute()
+        )
         for q in q_res.data or []:
             quizzes_map[str(q["id"])] = q
 
@@ -57,25 +66,42 @@ async def get_quiz_attempt(
 ):
     res = db.table("quiz_attempts").select("*").eq("id", str(attempt_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz attempt not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Quiz attempt not found"
+        )
     attempt = res.data[0]
 
     # Fetch quiz details
     if attempt.get("quiz_id"):
-        q_res = db.table("quizzes").select("id, title, language, topic").eq("id", str(attempt["quiz_id"])).execute()
+        q_res = (
+            db.table("quizzes")
+            .select("id, title, language, topic")
+            .eq("id", str(attempt["quiz_id"]))
+            .execute()
+        )
         if q_res.data:
             attempt["quiz_title"] = q_res.data[0].get("title")
             attempt["language"] = q_res.data[0].get("language")
 
     # Fetch associated exercise attempts
-    ex_res = db.table("exercise_attempts").select("*").eq("quiz_attempt_id", str(attempt_id)).order("created_at").execute()
+    ex_res = (
+        db.table("exercise_attempts")
+        .select("*")
+        .eq("quiz_attempt_id", str(attempt_id))
+        .order("created_at")
+        .execute()
+    )
     exercise_attempts = ex_res.data or []
 
     # Enrich exercise attempts with exercise questions, answers, and explanations
-    ex_ids = list({str(ea["exercise_id"]) for ea in exercise_attempts if ea.get("exercise_id")})
+    ex_ids = list(
+        {str(ea["exercise_id"]) for ea in exercise_attempts if ea.get("exercise_id")}
+    )
     exercises_map = {}
     if ex_ids:
-        raw_exercises = db.table("exercises").select("*").in_("id", ex_ids).execute().data or []
+        raw_exercises = (
+            db.table("exercises").select("*").in_("id", ex_ids).execute().data or []
+        )
         for raw in raw_exercises:
             exercises_map[str(raw["id"])] = raw
 
@@ -83,13 +109,17 @@ async def get_quiz_attempt(
         raw = exercises_map.get(str(ea.get("exercise_id")), {})
         payload = raw.get("payload", {})
         ea["prompt"] = raw.get("prompt") or "Exercise Question"
-        ea["explanation"] = payload.get("explanation") or "Focus on grammar and vocabulary rules."
-        
+        ea["explanation"] = (
+            payload.get("explanation") or "Focus on grammar and vocabulary rules."
+        )
+
         correct_ans = payload.get("correct_answer")
         if not correct_ans and payload.get("correct_order"):
             correct_ans = " ".join(payload.get("correct_order"))
         elif not correct_ans and payload.get("pairs"):
-            correct_ans = ", ".join(f"{p['left']} = {p['right']}" for p in payload["pairs"])
+            correct_ans = ", ".join(
+                f"{p['left']} = {p['right']}" for p in payload["pairs"]
+            )
         ea["correct_answer"] = correct_ans or ""
         ea["concept"] = raw.get("prompt") or "Grammar & Vocabulary"
 
@@ -97,10 +127,12 @@ async def get_quiz_attempt(
     return attempt
 
 
-@router.post("", response_model=QuizAttemptResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=QuizAttemptResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_quiz_attempt(
     attempt_in: QuizAttemptCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: Client = Depends(get_supabase),
 ):
     payload = attempt_in.model_dump(mode="json")
@@ -111,11 +143,14 @@ async def create_quiz_attempt(
     if not payload.get("user_id"):
         payload["user_id"] = str(current_user["id"])
     if not payload.get("completed_at"):
-        payload["completed_at"] = datetime.now(timezone.utc).isoformat()
+        payload["completed_at"] = datetime.now(UTC).isoformat()
 
     res = db.table("quiz_attempts").insert(payload).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create quiz attempt")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to create quiz attempt",
+        )
     attempt = res.data[0]
     attempt_id = attempt["id"]
 
@@ -130,15 +165,30 @@ async def create_quiz_attempt(
     for item in items_to_record:
         ex_id = item.get("exerciseId") or item.get("exercise_id")
         if ex_id:
-            user_ans = str(item.get("userAnswer") or item.get("user_answer") or item.get("answer") or "")
-            is_corr = item.get("isCorrect") if "isCorrect" in item else item.get("is_correct", False)
+            user_ans = str(
+                item.get("userAnswer")
+                or item.get("user_answer")
+                or item.get("answer")
+                or ""
+            )
+            is_corr = (
+                item.get("isCorrect")
+                if "isCorrect" in item
+                else item.get("is_correct", False)
+            )
             try:
-                ea_res = db.table("exercise_attempts").insert({
-                    "quiz_attempt_id": str(attempt_id),
-                    "exercise_id": str(ex_id),
-                    "answer": user_ans,
-                    "is_correct": bool(is_corr),
-                }).execute()
+                ea_res = (
+                    db.table("exercise_attempts")
+                    .insert(
+                        {
+                            "quiz_attempt_id": str(attempt_id),
+                            "exercise_id": str(ex_id),
+                            "answer": user_ans,
+                            "is_correct": bool(is_corr),
+                        }
+                    )
+                    .execute()
+                )
                 if ea_res.data:
                     exercise_attempts.append(ea_res.data[0])
             except Exception:
@@ -156,13 +206,24 @@ async def update_quiz_attempt(
 ):
     payload = attempt_in.model_dump(exclude_unset=True, mode="json")
     if not payload:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields provided for update",
+        )
     res = db.table("quiz_attempts").update(payload).eq("id", str(attempt_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz attempt not found or update failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz attempt not found or update failed",
+        )
     attempt = res.data[0]
 
-    ex_res = db.table("exercise_attempts").select("*").eq("quiz_attempt_id", str(attempt_id)).execute()
+    ex_res = (
+        db.table("exercise_attempts")
+        .select("*")
+        .eq("quiz_attempt_id", str(attempt_id))
+        .execute()
+    )
     attempt["exercise_attempts"] = ex_res.data or []
     return attempt
 
@@ -174,5 +235,8 @@ async def delete_quiz_attempt(
 ):
     res = db.table("quiz_attempts").delete().eq("id", str(attempt_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz attempt not found or delete failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz attempt not found or delete failed",
+        )
     return {"message": "Quiz attempt deleted successfully", "id": str(attempt_id)}

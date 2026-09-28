@@ -1,6 +1,5 @@
-from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -8,7 +7,7 @@ class ProgressResponse(BaseModel):
     id: UUID
     name: str
     email: str
-    avatar: Optional[str] = None
+    avatar: str | None = None
     learningLanguage: str = "Spanish"
     nativeLanguage: str = "English"
     currentLevel: str = "A1"

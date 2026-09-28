@@ -1,15 +1,15 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
 
 class ExerciseAttemptBase(BaseModel):
     quiz_attempt_id: UUID
     exercise_id: UUID
-    answer: Optional[str] = None
-    is_correct: Optional[bool] = None
-    response_time_ms: Optional[int] = None
+    answer: str | None = None
+    is_correct: bool | None = None
+    response_time_ms: int | None = None
 
 
 class ExerciseAttemptCreate(ExerciseAttemptBase):
@@ -17,9 +17,9 @@ class ExerciseAttemptCreate(ExerciseAttemptBase):
 
 
 class ExerciseAttemptUpdate(BaseModel):
-    answer: Optional[str] = None
-    is_correct: Optional[bool] = None
-    response_time_ms: Optional[int] = None
+    answer: str | None = None
+    is_correct: bool | None = None
+    response_time_ms: int | None = None
 
 
 class ExerciseAttemptInDB(ExerciseAttemptBase):
@@ -30,7 +30,7 @@ class ExerciseAttemptInDB(ExerciseAttemptBase):
 
 
 class ExerciseAttemptResponse(ExerciseAttemptInDB):
-    prompt: Optional[str] = None
-    correct_answer: Optional[str] = None
-    explanation: Optional[str] = None
-    concept: Optional[str] = None
+    prompt: str | None = None
+    correct_answer: str | None = None
+    explanation: str | None = None
+    concept: str | None = None

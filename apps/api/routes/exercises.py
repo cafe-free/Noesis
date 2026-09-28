@@ -1,10 +1,10 @@
-from typing import List, Optional
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
-from apps.api.core.db import get_supabase
 from apps.api.core.auth import get_current_user
+from apps.api.core.db import get_supabase
 from apps.api.schemas.exercise import (
     ExerciseCreate,
     ExerciseInDB,
@@ -12,12 +12,14 @@ from apps.api.schemas.exercise import (
     ExerciseUpdate,
 )
 
-router = APIRouter(prefix="/exercises", tags=["exercises"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/exercises", tags=["exercises"], dependencies=[Depends(get_current_user)]
+)
 
 
-@router.get("", response_model=List[ExerciseResponse])
+@router.get("", response_model=list[ExerciseResponse])
 async def get_exercises(
-    quiz_id: Optional[UUID] = None,
+    quiz_id: UUID | None = None,
     db: Client = Depends(get_supabase),
 ):
     query = db.table("exercises").select("*")
@@ -36,7 +38,9 @@ async def get_exercise(
 ):
     res = db.table("exercises").select("*").eq("id", str(exercise_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found"
+        )
     exercise_in_db = ExerciseInDB(**res.data[0])
     return ExerciseResponse.sanitize(exercise_in_db)
 
@@ -49,7 +53,9 @@ async def create_exercise(
     payload = exercise_in.model_dump(mode="json")
     res = db.table("exercises").insert(payload).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create exercise")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create exercise"
+        )
     exercise_in_db = ExerciseInDB(**res.data[0])
     return ExerciseResponse.sanitize(exercise_in_db)
 
@@ -62,10 +68,16 @@ async def update_exercise(
 ):
     payload = exercise_in.model_dump(exclude_unset=True, mode="json")
     if not payload:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields provided for update",
+        )
     res = db.table("exercises").update(payload).eq("id", str(exercise_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found or update failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Exercise not found or update failed",
+        )
     exercise_in_db = ExerciseInDB(**res.data[0])
     return ExerciseResponse.sanitize(exercise_in_db)
 
@@ -77,5 +89,8 @@ async def delete_exercise(
 ):
     res = db.table("exercises").delete().eq("id", str(exercise_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found or delete failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Exercise not found or delete failed",
+        )
     return {"message": "Exercise deleted successfully", "id": str(exercise_id)}

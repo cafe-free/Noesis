@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
+
 from apps.api.schemas.exercise import ExerciseResponse
 
 
@@ -10,7 +11,7 @@ class QuizBase(BaseModel):
     level: str
     topic: str
     title: str
-    lesson_id: Optional[UUID] = None
+    lesson_id: UUID | None = None
 
 
 class QuizCreate(QuizBase):
@@ -18,11 +19,11 @@ class QuizCreate(QuizBase):
 
 
 class QuizUpdate(BaseModel):
-    language: Optional[str] = None
-    level: Optional[str] = None
-    topic: Optional[str] = None
-    title: Optional[str] = None
-    lesson_id: Optional[UUID] = None
+    language: str | None = None
+    level: str | None = None
+    topic: str | None = None
+    title: str | None = None
+    lesson_id: UUID | None = None
 
 
 class QuizInDB(QuizBase):
@@ -35,7 +36,6 @@ class QuizInDB(QuizBase):
 class QuizResponse(QuizBase):
     id: UUID
     created_at: datetime
-    exercises: List[ExerciseResponse] = []
+    exercises: list[ExerciseResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
-

@@ -1,4 +1,4 @@
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 from apps.api.core.config import settings
 
@@ -12,4 +12,3 @@ def get_supabase() -> Client:
     if supabase is not None:
         return supabase
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-

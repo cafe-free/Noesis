@@ -1,36 +1,37 @@
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
+
 from apps.api.schemas.exercise_attempt import ExerciseAttemptResponse
 
 
 class QuizAttemptBase(BaseModel):
     user_id: UUID
     quiz_id: UUID
-    score: Optional[float] = None
-    total_questions: Optional[int] = None
-    correct_answers: Optional[int] = None
-    completed_at: Optional[datetime] = None
+    score: float | None = None
+    total_questions: int | None = None
+    correct_answers: int | None = None
+    completed_at: datetime | None = None
 
 
 class QuizAttemptCreate(BaseModel):
     quiz_id: UUID
-    user_id: Optional[UUID] = None
-    score: Optional[float] = None
-    total_questions: Optional[int] = None
-    correct_answers: Optional[int] = None
-    completed_at: Optional[datetime] = None
-    time_spent_seconds: Optional[int] = None
-    mistakes: Optional[List[dict]] = None
-    answers: Optional[List[dict]] = None
+    user_id: UUID | None = None
+    score: float | None = None
+    total_questions: int | None = None
+    correct_answers: int | None = None
+    completed_at: datetime | None = None
+    time_spent_seconds: int | None = None
+    mistakes: list[dict] | None = None
+    answers: list[dict] | None = None
 
 
 class QuizAttemptUpdate(BaseModel):
-    score: Optional[float] = None
-    total_questions: Optional[int] = None
-    correct_answers: Optional[int] = None
-    completed_at: Optional[datetime] = None
+    score: float | None = None
+    total_questions: int | None = None
+    correct_answers: int | None = None
+    completed_at: datetime | None = None
 
 
 class QuizAttemptInDB(QuizAttemptBase):
@@ -41,6 +42,6 @@ class QuizAttemptInDB(QuizAttemptBase):
 
 
 class QuizAttemptResponse(QuizAttemptInDB):
-    exercise_attempts: List[ExerciseAttemptResponse] = []
-    quiz_title: Optional[str] = None
-    language: Optional[str] = None
+    exercise_attempts: list[ExerciseAttemptResponse] = []
+    quiz_title: str | None = None
+    language: str | None = None

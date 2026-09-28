@@ -2,8 +2,8 @@ import base64
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 from fastapi import Depends, HTTPException, status
@@ -14,21 +14,17 @@ from supabase import Client
 from apps.api.core.config import settings
 from apps.api.core.db import get_supabase
 
-
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
     derived_key = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1)
-    return "scrypt$16384$8$1${}${}".format(
-        base64.urlsafe_b64encode(salt).decode(),
-        base64.urlsafe_b64encode(derived_key).decode(),
-    )
+    return f"scrypt$16384$8$1${base64.urlsafe_b64encode(salt).decode()}${base64.urlsafe_b64encode(derived_key).decode()}"
 
 
 def verify_password(password: str, encoded_password: str) -> bool:
@@ -60,7 +56,9 @@ def create_access_token(user_id: str) -> tuple[str, int]:
         "exp": now + timedelta(seconds=expires_in),
         "jti": str(uuid4()),
     }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM), expires_in
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    ), expires_in
 
 
 def create_refresh_token(db: Client, user_id: str) -> str:
@@ -76,7 +74,7 @@ def create_refresh_token(db: Client, user_id: str) -> str:
     return raw_token
 
 
-def issue_tokens(db: Client, user_id: str) -> Dict[str, Any]:
+def issue_tokens(db: Client, user_id: str) -> dict[str, Any]:
     access_token, expires_in = create_access_token(user_id)
     refresh_token = create_refresh_token(db, user_id)
     return {
@@ -93,10 +91,13 @@ def revoke_refresh_token(db: Client, raw_token: str) -> None:
     ).execute()
 
 
-def rotate_refresh_token(db: Client, raw_token: str) -> Dict[str, Any]:
-    result = db.table("refresh_tokens").select("*").eq(
-        "token_hash", _hash_refresh_token(raw_token)
-    ).execute()
+def rotate_refresh_token(db: Client, raw_token: str) -> dict[str, Any]:
+    result = (
+        db.table("refresh_tokens")
+        .select("*")
+        .eq("token_hash", _hash_refresh_token(raw_token))
+        .execute()
+    )
     if not result.data:
         raise invalid_credentials()
 
@@ -131,7 +132,7 @@ def authentication_required(detail: str = "Not authenticated") -> HTTPException:
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Client = Depends(get_supabase),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise authentication_required()
     try:

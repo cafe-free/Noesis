@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field
 
 JobStatusLiteral = Literal["pending", "in_progress", "completed", "failed"]
@@ -14,25 +15,25 @@ class GenerationJobBase(BaseModel):
 
 
 class GenerationJobCreate(GenerationJobBase):
-    quiz_id: Optional[UUID] = None
+    quiz_id: UUID | None = None
 
 
 class GenerationJobUpdate(BaseModel):
-    status: Optional[JobStatusLiteral] = None
-    quiz_id: Optional[UUID] = None
-    error: Optional[str] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    status: JobStatusLiteral | None = None
+    quiz_id: UUID | None = None
+    error: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
 
 class GenerationJobInDB(GenerationJobBase):
     id: UUID
     status: str
-    quiz_id: Optional[UUID] = None
-    error: Optional[str] = None
+    quiz_id: UUID | None = None
+    error: str | None = None
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

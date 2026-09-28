@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from supabase import Client
 
@@ -7,23 +8,27 @@ from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
 from apps.api.schemas.progress import ProgressResponse, WeakAreaItemResponse
 
-router = APIRouter(prefix="/progress", tags=["progress"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/progress", tags=["progress"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("/me", response_model=ProgressResponse)
 async def get_my_progress(
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: Client = Depends(get_supabase),
 ):
     user_id = str(current_user["id"])
-    attempts_res = db.table("quiz_attempts").select("*").eq("user_id", user_id).execute()
+    attempts_res = (
+        db.table("quiz_attempts").select("*").eq("user_id", user_id).execute()
+    )
     attempts = attempts_res.data or []
 
     total_correct = sum(int(a.get("correct_answers") or 0) for a in attempts)
     total_xp = total_correct * 10
 
     # Calculate today's XP
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     today_date = now_utc.date()
     today_xp = 0
     for a in attempts:
@@ -36,9 +41,18 @@ async def get_my_progress(
             except Exception:
                 pass
 
-    streak_days = max(1, len({a.get("completed_at", "")[:10] for a in attempts if a.get("completed_at")}))
+    streak_days = max(
+        1,
+        len(
+            {a.get("completed_at", "")[:10] for a in attempts if a.get("completed_at")}
+        ),
+    )
 
-    name = current_user.get("username") or current_user.get("email", "").split("@")[0] or "Learner"
+    name = (
+        current_user.get("username")
+        or current_user.get("email", "").split("@")[0]
+        or "Learner"
+    )
 
     return ProgressResponse(
         id=current_user["id"],
@@ -56,23 +70,31 @@ async def get_my_progress(
     )
 
 
-@router.get("/me/weaknesses", response_model=List[WeakAreaItemResponse])
+@router.get("/me/weaknesses", response_model=list[WeakAreaItemResponse])
 async def get_my_weaknesses(
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: Client = Depends(get_supabase),
 ):
     user_id = str(current_user["id"])
     # Fetch user's quiz attempts
-    attempts_res = db.table("quiz_attempts").select("id, quiz_id").eq("user_id", user_id).execute()
+    attempts_res = (
+        db.table("quiz_attempts").select("id, quiz_id").eq("user_id", user_id).execute()
+    )
     attempts = attempts_res.data or []
 
     if not attempts:
         return []
 
     attempt_ids = [str(a["id"]) for a in attempts]
-    
+
     # Query exercise attempts that were incorrect
-    ea_query = db.table("exercise_attempts").select("*").in_("quiz_attempt_id", attempt_ids).eq("is_correct", False).execute()
+    ea_query = (
+        db.table("exercise_attempts")
+        .select("*")
+        .in_("quiz_attempt_id", attempt_ids)
+        .eq("is_correct", False)
+        .execute()
+    )
     mistakes = ea_query.data or []
 
     if not mistakes:
@@ -82,18 +104,25 @@ async def get_my_weaknesses(
     ex_ids = list({str(m["exercise_id"]) for m in mistakes if m.get("exercise_id")})
     exercises_map = {}
     if ex_ids:
-        ex_res = db.table("exercises").select("id, prompt, quiz_id").in_("id", ex_ids).execute()
+        ex_res = (
+            db.table("exercises")
+            .select("id, prompt, quiz_id")
+            .in_("id", ex_ids)
+            .execute()
+        )
         for ex in ex_res.data or []:
             exercises_map[str(ex["id"])] = ex
 
     quizzes_map = {}
-    quiz_ids = list({str(ex["quiz_id"]) for ex in exercises_map.values() if ex.get("quiz_id")})
+    quiz_ids = list(
+        {str(ex["quiz_id"]) for ex in exercises_map.values() if ex.get("quiz_id")}
+    )
     if quiz_ids:
         q_res = db.table("quizzes").select("id, topic").in_("id", quiz_ids).execute()
         for q in q_res.data or []:
             quizzes_map[str(q["id"])] = q.get("topic", "Grammar")
 
-    result: List[WeakAreaItemResponse] = []
+    result: list[WeakAreaItemResponse] = []
     for m in mistakes[:5]:
         ex_id = str(m.get("exercise_id"))
         ex = exercises_map.get(ex_id, {})

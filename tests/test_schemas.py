@@ -1,53 +1,43 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from pydantic import ValidationError
 
-from apps.api.schemas.user import (
-    UserCreate,
-    UserInDB,
-    UserResponse,
-    UserUpdate,
-)
-from apps.api.schemas.lesson import (
-    LessonCreate,
-    LessonInDB,
-    LessonResponse,
-    LessonUpdate,
-)
-from apps.api.schemas.quiz import (
-    QuizCreate,
-    QuizInDB,
-    QuizResponse,
-    QuizUpdate,
-)
 from apps.api.schemas.exercise import (
     ExerciseCreate,
     ExerciseInDB,
     ExerciseResponse,
-    ExerciseUpdate,
-    MultipleChoicePayload,
-    FillInBlankPayload,
-    WordOrderPayload,
-    MatchingPayload,
-)
-from apps.api.schemas.quiz_attempt import (
-    QuizAttemptCreate,
-    QuizAttemptInDB,
-    QuizAttemptResponse,
-    QuizAttemptUpdate,
 )
 from apps.api.schemas.exercise_attempt import (
     ExerciseAttemptCreate,
     ExerciseAttemptInDB,
     ExerciseAttemptResponse,
-    ExerciseAttemptUpdate,
 )
 from apps.api.schemas.generation_job import (
     GenerationJobCreate,
     GenerationJobInDB,
     GenerationJobResponse,
-    GenerationJobUpdate,
+)
+from apps.api.schemas.lesson import (
+    LessonCreate,
+    LessonInDB,
+    LessonResponse,
+)
+from apps.api.schemas.quiz import (
+    QuizCreate,
+    QuizInDB,
+    QuizResponse,
+)
+from apps.api.schemas.quiz_attempt import (
+    QuizAttemptCreate,
+    QuizAttemptInDB,
+    QuizAttemptResponse,
+)
+from apps.api.schemas.user import (
+    UserCreate,
+    UserInDB,
+    UserResponse,
 )
 
 
@@ -62,9 +52,15 @@ def test_user_schemas():
         UserCreate(email="not-an-email")
 
     # UserInDB & UserResponse
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     uid = uuid.uuid4()
-    user_db = UserInDB(id=uid, email="alice@example.com", username="alice", created_at=now, updated_at=now)
+    user_db = UserInDB(
+        id=uid,
+        email="alice@example.com",
+        username="alice",
+        created_at=now,
+        updated_at=now,
+    )
     assert user_db.id == uid
 
     user_resp = UserResponse.model_validate(user_db)
@@ -85,7 +81,7 @@ def test_lesson_schemas():
     with pytest.raises(ValidationError):
         LessonCreate(language="Spanish", level="A1", topic="Greetings")  # missing title
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lid = uuid.uuid4()
     lesson_db = LessonInDB(
         id=lid,
@@ -111,7 +107,7 @@ def test_quiz_schemas():
     )
     assert quiz_in.lesson_id == lid
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     qid = uuid.uuid4()
     quiz_db = QuizInDB(
         id=qid,
@@ -152,7 +148,7 @@ def test_exercise_schemas_multiple_choice():
         )
 
     # Test sanitize
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     eid = uuid.uuid4()
     ex_db = ExerciseInDB(
         id=eid,
@@ -185,7 +181,7 @@ def test_exercise_schemas_fill_in_blank():
     )
     assert ex_in.type == "fill_in_blank"
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     eid = uuid.uuid4()
     ex_db = ExerciseInDB(
         id=eid,
@@ -218,7 +214,7 @@ def test_exercise_schemas_word_order():
     )
     assert ex_in.type == "word_order"
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     eid = uuid.uuid4()
     ex_db = ExerciseInDB(
         id=eid,
@@ -253,7 +249,7 @@ def test_exercise_schemas_matching():
     )
     assert ex_in.type == "matching"
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     eid = uuid.uuid4()
     ex_db = ExerciseInDB(
         id=eid,
@@ -281,7 +277,7 @@ def test_quiz_attempt_schemas():
     attempt_in = QuizAttemptCreate(user_id=uid, quiz_id=qid, total_questions=5)
     assert attempt_in.total_questions == 5
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     aid = uuid.uuid4()
     attempt_db = QuizAttemptInDB(
         id=aid,
@@ -310,7 +306,7 @@ def test_exercise_attempt_schemas():
     )
     assert ex_att_in.is_correct is True
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     ea_id = uuid.uuid4()
     ea_db = ExerciseAttemptInDB(
         id=ea_id,
@@ -344,7 +340,7 @@ def test_generation_job_schemas():
             count=0,
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     jid = uuid.uuid4()
     job_db = GenerationJobInDB(
         id=jid,
@@ -371,4 +367,3 @@ def test_settings_schema(monkeypatch):
     assert custom_settings.SUPABASE_ANON_KEY == "custom-key"
     assert custom_settings.ENVIRONMENT == "production"
     assert custom_settings.PROJECT_NAME == "Noesis API"
-

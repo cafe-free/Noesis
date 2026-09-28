@@ -1,6 +1,3 @@
-import uuid
-
-
 def test_root_endpoint(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -72,7 +69,9 @@ def test_lessons_endpoints(client):
     assert len(filter_res.json()) == 1
 
     # 4. Update lesson
-    update_res = client.put(f"/lessons/{lesson_id}", json={"title": "Advanced French Greetings"})
+    update_res = client.put(
+        f"/lessons/{lesson_id}", json={"title": "Advanced French Greetings"}
+    )
     assert update_res.status_code == 200
     assert update_res.json()["title"] == "Advanced French Greetings"
 
@@ -194,12 +193,19 @@ def test_quizzes_and_exercises_endpoints(client):
 
 def test_quiz_attempts_and_exercise_attempts_endpoints(client):
     # Create user and quiz
-    user_res = client.post("/users", json={"email": "student@example.com", "username": "student"})
+    user_res = client.post(
+        "/users", json={"email": "student@example.com", "username": "student"}
+    )
     user_id = user_res.json()["id"]
 
     quiz_res = client.post(
         "/quizzes",
-        json={"language": "German", "level": "A1", "topic": "Numbers", "title": "German Numbers"},
+        json={
+            "language": "German",
+            "level": "A1",
+            "topic": "Numbers",
+            "title": "German Numbers",
+        },
     )
     quiz_id = quiz_res.json()["id"]
 

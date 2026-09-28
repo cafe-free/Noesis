@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,12 +14,12 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: str = "https://placeholder.supabase.co"
     SUPABASE_ANON_KEY: str = "placeholder-anon-key"
-    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
 
-    DATABASE_URL: Optional[str] = None
+    DATABASE_URL: str | None = None
 
-    GEMINI_API_KEY: Optional[str] = None
-    GOOGLE_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: str | None = None
+    GOOGLE_API_KEY: str | None = None
     GEMINI_MODEL: str = "gemma-4"
     MAX_LLM_RETRIES: int = 2
 

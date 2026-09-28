@@ -1,11 +1,10 @@
-import pytest
 from apps.api.schemas.generation import (
-    GeneratedMultipleChoice,
     GeneratedFillInBlank,
-    GeneratedWordOrder,
-    GeneratedMatchingPair,
     GeneratedMatching,
+    GeneratedMatchingPair,
+    GeneratedMultipleChoice,
     GeneratedQuizContent,
+    GeneratedWordOrder,
 )
 from apps.api.services.generation import QuizGenerationService
 
@@ -62,7 +61,9 @@ def test_fallback_generation_service():
 
 def test_japanese_generation_service():
     service = QuizGenerationService()
-    content = service.generate_fallback_content("Japanese", "A1", "At the Coffee Shop", 4)
+    content = service.generate_fallback_content(
+        "Japanese", "A1", "At the Coffee Shop", 4
+    )
     assert "Japanese" in content.title
     mcq = content.multiple_choice_exercises[0]
     assert any("コーヒー" in opt for opt in mcq.options)

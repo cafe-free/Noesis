@@ -1,22 +1,24 @@
-from typing import List, Optional
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
-from apps.api.core.db import get_supabase
 from apps.api.core.auth import get_current_user
+from apps.api.core.db import get_supabase
 from apps.api.schemas.exercise import ExerciseInDB, ExerciseResponse
 from apps.api.schemas.quiz import QuizCreate, QuizResponse, QuizUpdate
 
-router = APIRouter(prefix="/quizzes", tags=["quizzes"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/quizzes", tags=["quizzes"], dependencies=[Depends(get_current_user)]
+)
 
 
-@router.get("", response_model=List[QuizResponse])
+@router.get("", response_model=list[QuizResponse])
 async def get_quizzes(
-    language: Optional[str] = None,
-    level: Optional[str] = None,
-    topic: Optional[str] = None,
-    lesson_id: Optional[UUID] = None,
+    language: str | None = None,
+    level: str | None = None,
+    topic: str | None = None,
+    lesson_id: UUID | None = None,
     db: Client = Depends(get_supabase),
 ):
     query = db.table("quizzes").select("*")
@@ -35,7 +37,12 @@ async def get_quizzes(
     quiz_ids = [str(q["id"]) for q in quizzes]
     ex_count_map = {}
     if quiz_ids:
-        ex_res = db.table("exercises").select("quiz_id, id").in_("quiz_id", quiz_ids).execute()
+        ex_res = (
+            db.table("exercises")
+            .select("quiz_id, id")
+            .in_("quiz_id", quiz_ids)
+            .execute()
+        )
         for ex in ex_res.data or []:
             qid = str(ex.get("quiz_id"))
             ex_count_map[qid] = ex_count_map.get(qid, 0) + 1
@@ -43,7 +50,14 @@ async def get_quizzes(
     for quiz in quizzes:
         count = ex_count_map.get(str(quiz["id"]), 0)
         quiz["exercises"] = [
-            {"id": str(UUID(int=i + 1)), "quiz_id": quiz["id"], "type": "multiple_choice", "position": i + 1, "prompt": "", "payload": {}}
+            {
+                "id": str(UUID(int=i + 1)),
+                "quiz_id": quiz["id"],
+                "type": "multiple_choice",
+                "position": i + 1,
+                "prompt": "",
+                "payload": {},
+            }
             for i in range(count)
         ]
     return quizzes
@@ -57,11 +71,19 @@ async def get_quiz(
     # Get quiz
     quiz_res = db.table("quizzes").select("*").eq("id", str(quiz_id)).execute()
     if not quiz_res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found"
+        )
     quiz = quiz_res.data[0]
 
     # Get exercises
-    ex_res = db.table("exercises").select("*").eq("quiz_id", str(quiz_id)).order("position").execute()
+    ex_res = (
+        db.table("exercises")
+        .select("*")
+        .eq("quiz_id", str(quiz_id))
+        .order("position")
+        .execute()
+    )
     raw_exercises = ex_res.data or []
     exercises_in_db = [ExerciseInDB(**ex) for ex in raw_exercises]
 
@@ -80,7 +102,9 @@ async def create_quiz(
     payload = quiz_in.model_dump(mode="json")
     res = db.table("quizzes").insert(payload).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create quiz")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create quiz"
+        )
     quiz = res.data[0]
     quiz["exercises"] = []
     return quiz
@@ -94,16 +118,30 @@ async def update_quiz(
 ):
     payload = quiz_in.model_dump(exclude_unset=True, mode="json")
     if not payload:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields provided for update",
+        )
     res = db.table("quizzes").update(payload).eq("id", str(quiz_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found or update failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found or update failed",
+        )
     quiz = res.data[0]
 
     # Get existing exercises
-    ex_res = db.table("exercises").select("*").eq("quiz_id", str(quiz_id)).order("position").execute()
+    ex_res = (
+        db.table("exercises")
+        .select("*")
+        .eq("quiz_id", str(quiz_id))
+        .order("position")
+        .execute()
+    )
     raw_exercises = ex_res.data or []
-    sanitized_exercises = [ExerciseResponse.sanitize(ExerciseInDB(**ex)) for ex in raw_exercises]
+    sanitized_exercises = [
+        ExerciseResponse.sanitize(ExerciseInDB(**ex)) for ex in raw_exercises
+    ]
     quiz["exercises"] = sanitized_exercises
     return quiz
 
@@ -115,6 +153,8 @@ async def delete_quiz(
 ):
     res = db.table("quizzes").delete().eq("id", str(quiz_id)).execute()
     if not res.data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found or delete failed")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found or delete failed",
+        )
     return {"message": "Quiz deleted successfully", "id": str(quiz_id)}
-

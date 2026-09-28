@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -9,7 +9,7 @@ class LessonBase(BaseModel):
     level: str
     topic: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class LessonCreate(LessonBase):
@@ -17,11 +17,11 @@ class LessonCreate(LessonBase):
 
 
 class LessonUpdate(BaseModel):
-    language: Optional[str] = None
-    level: Optional[str] = None
-    topic: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
+    language: str | None = None
+    level: str | None = None
+    topic: str | None = None
+    title: str | None = None
+    description: str | None = None
 
 
 class LessonInDB(LessonBase):
