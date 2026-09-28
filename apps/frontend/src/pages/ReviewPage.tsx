@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { RotateCcw } from 'lucide-react';
-import { getAttemptReview } from '../lib/api/attempts';
+import { getAttemptReview } from '../api/attempts';
 import { QuizAttemptResult } from '../types';
 import { Button } from '../components/ui/Button';
 import {

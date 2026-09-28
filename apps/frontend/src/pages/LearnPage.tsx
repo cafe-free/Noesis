@@ -6,8 +6,8 @@ import { LearnHeader } from '../components/learning/LearnHeader';
 import { FeaturedLessonBanner } from '../components/learning/FeaturedLessonBanner';
 import { WeakAreasBanner } from '../components/learning/WeakAreasBanner';
 import { LessonGrid } from '../components/learning/LessonGrid';
-import { listQuizzes } from '../lib/api/quizzes';
-import { getWeaknesses } from '../lib/api/progress';
+import { listQuizzes } from '../api/quizzes';
+import { getWeaknesses } from '../api/progress';
 import { Quiz, WeakAreaItem } from '../types';
 
 export const LearnPage: React.FC = () => {

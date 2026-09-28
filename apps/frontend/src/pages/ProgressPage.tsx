@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getWeaknesses } from '../lib/api/progress';
-import { listUserAttempts } from '../lib/api/attempts';
+import { getWeaknesses } from '../api/progress';
+import { listUserAttempts } from '../api/attempts';
 import { QuizAttemptResult, WeakAreaItem } from '../types';
 import {
   ProgressStatsGrid,

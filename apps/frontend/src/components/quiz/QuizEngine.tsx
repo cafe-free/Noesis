@@ -6,7 +6,7 @@ import { ExerciseRenderer } from './ExerciseRenderer';
 import { AnswerFeedback } from './AnswerFeedback';
 import { QuizResult } from './QuizResult';
 import { Button } from '../ui/Button';
-import { checkExerciseAnswer, submitQuizAttempt } from '../../lib/api/attempts';
+import { checkExerciseAnswer, submitQuizAttempt } from '../../api/attempts';
 import { sound } from '../../lib/sound';
 import { useAuth } from '../../context/AuthContext';
 

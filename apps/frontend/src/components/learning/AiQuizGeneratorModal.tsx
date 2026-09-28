@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X, Loader2, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { startQuizGenerationJob, getQuizGenerationJob } from '../../lib/api/quizzes';
-import { sound } from '../../lib/sound';
+import { startQuizGenerationJob, getQuizGenerationJob } from '../../api/quizzes';
 
 interface Props {
   isOpen: boolean;
@@ -39,7 +38,6 @@ export const AiQuizGeneratorModal: React.FC<Props> = ({
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
-    sound.playTap();
 
     try {
       setGenerationStep('Synthesizing exercises with natural grammar...');
@@ -64,7 +62,6 @@ export const AiQuizGeneratorModal: React.FC<Props> = ({
       });
 
       if (result.quizId) {
-        sound.playCorrect();
         onClose();
         navigate(`/quiz/${result.quizId}`);
       }

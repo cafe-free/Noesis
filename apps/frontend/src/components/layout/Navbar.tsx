@@ -3,23 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { Flame, Heart, Sparkles, Moon, Sun, Volume2, VolumeX, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { sound } from '../../lib/sound';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
   const { currentUser, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [isMuted, setIsMuted] = React.useState(sound.getMuted());
 
   // Hide main nav during active quiz
   if (location.pathname.startsWith('/quiz/')) {
     return null;
   }
-
-  const handleToggleMute = () => {
-    const next = sound.toggleMute();
-    setIsMuted(next);
-  };
 
   const navLinks = [
     { label: 'Learn', href: '/learn' },
@@ -64,15 +57,6 @@ export const Navbar: React.FC = () => {
 
         {/* Zone 3: Actions & Status */}
         <div className="flex items-center gap-3">
-          {/* Sound Mute Toggle */}
-          <button
-            onClick={handleToggleMute}
-            aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}

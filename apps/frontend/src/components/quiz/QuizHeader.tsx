@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Heart, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
-import { sound } from '../../lib/sound';
 
 interface QuizHeaderProps {
   currentIndex: number;
@@ -19,14 +18,8 @@ export const QuizHeader: React.FC<QuizHeaderProps> = ({
   onExit,
 }) => {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [isMuted, setIsMuted] = useState(sound.getMuted());
 
   const progressPercentage = (currentIndex / Math.max(1, totalQuestions)) * 100;
-
-  const handleMuteToggle = () => {
-    const next = sound.toggleMute();
-    setIsMuted(next);
-  };
 
   return (
     <>
@@ -70,16 +63,6 @@ export const QuizHeader: React.FC<QuizHeaderProps> = ({
           <Heart className="w-5 h-5 fill-rose-500" />
           <span className="tabular-nums">{hearts}</span>
         </div>
-
-        {/* Mute button */}
-        <button
-          type="button"
-          onClick={handleMuteToggle}
-          aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
-          className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-        >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
       </header>
 
       {/* Exit Confirmation Dialog */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
-import { getQuiz } from '../lib/api/quizzes';
+import { getQuiz } from '../api/quizzes';
 import { Quiz } from '../types';
 import { QuizEngine } from '../components/quiz/QuizEngine';
 import { Button } from '../components/ui/Button';
