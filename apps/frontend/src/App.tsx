@@ -12,6 +12,7 @@ import { LearnPage } from './pages/LearnPage';
 import { QuizPage } from './pages/QuizPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { ProgressPage } from './pages/ProgressPage';
+import { ReferencesPage } from './pages/ReferencesPage';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/quiz/:id" element={<QuizPage />} />
                 <Route path="/review/:attemptId" element={<ReviewPage />} />
                 <Route path="/progress" element={<ProgressPage />} />
+                <Route path="/references" element={<ReferencesPage />} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

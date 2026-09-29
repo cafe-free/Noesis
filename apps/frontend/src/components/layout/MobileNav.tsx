@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, BarChart2, UserCheck } from 'lucide-react';
+import { BookOpen, Sparkles, BarChart2, UserCheck, BookMarked } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
   const location = useLocation();
@@ -15,6 +15,7 @@ export const MobileNav: React.FC = () => {
     { label: 'Practice', icon: Sparkles, path: '/learn#practice' },
     { label: 'Progress', icon: BarChart2, path: '/progress' },
     { label: 'Review', icon: UserCheck, path: '/review/attempt-sample-1' },
+    { label: 'References', icon: BookMarked, path: '/references' },
   ];
 
   return (

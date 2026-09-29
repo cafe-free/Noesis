@@ -19,6 +19,7 @@ export const Navbar: React.FC = () => {
     { label: 'Practice', href: '/learn#practice' },
     { label: 'Progress', href: '/progress' },
     { label: 'Review', href: '/review/latest' },
+    { label: 'References', href: '/references' },
   ];
 
   return (
