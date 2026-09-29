@@ -13,7 +13,9 @@ class MockTableQuery:
         self.table_name = table_name
         self.db_store = db_store
         self._filters: list[tuple[str, Any]] = []
+        self._in_filters: list[tuple[str, list[str]]] = []
         self._order_by: str | None = None
+        self._order_desc: bool = False
         self._action: str = "select"
         self._insert_data: Any | None = None
         self._update_data: dict[str, Any] | None = None
@@ -40,8 +42,13 @@ class MockTableQuery:
         self._filters.append((column, str(value)))
         return self
 
+    def in_(self, column: str, values: list[Any]) -> "MockTableQuery":
+        self._in_filters.append((column, [str(v) for v in values]))
+        return self
+
     def order(self, column: str, desc: bool = False) -> "MockTableQuery":
         self._order_by = column
+        self._order_desc = desc
         return self
 
     def execute(self) -> MockResponse:
@@ -51,8 +58,13 @@ class MockTableQuery:
             res = [r.copy() for r in records]
             for col, val in self._filters:
                 res = [r for r in res if str(r.get(col)) == val]
+            for col, vals in self._in_filters:
+                res = [r for r in res if str(r.get(col)) in vals]
             if self._order_by:
-                res.sort(key=lambda r: r.get(self._order_by, 0))
+                res.sort(
+                    key=lambda r: (r.get(self._order_by) is not None, r.get(self._order_by)),
+                    reverse=self._order_desc,
+                )
             return MockResponse(res)
 
         elif self._action == "insert":
@@ -69,7 +81,7 @@ class MockTableQuery:
                     record["id"] = str(uuid.uuid4())
                 if "created_at" not in record or not record["created_at"]:
                     record["created_at"] = now_str
-                if self.table_name in ("users", "lessons") and (
+                if self.table_name in ("users", "lessons", "reference_documents") and (
                     "updated_at" not in record or not record["updated_at"]
                 ):
                     record["updated_at"] = now_str
@@ -88,7 +100,7 @@ class MockTableQuery:
                 matches = all(str(r.get(col)) == val for col, val in self._filters)
                 if matches:
                     r.update(self._update_data or {})
-                    if self.table_name in ("users", "lessons"):
+                    if self.table_name in ("users", "lessons", "reference_documents"):
                         r["updated_at"] = now_str
                     updated.append(r.copy())
             return MockResponse(updated)
@@ -108,9 +120,22 @@ class MockTableQuery:
         return MockResponse([])
 
 
+class MockRpcQuery:
+    def __init__(self, fn_name: str, params: dict[str, Any], db_store: dict[str, list[dict[str, Any]]]):
+        self.fn_name = fn_name
+        self.params = params
+        self.db_store = db_store
+
+    def execute(self) -> MockResponse:
+        return MockResponse([])
+
+
 class MockSupabaseClient:
     def __init__(self):
         self.store: dict[str, list[dict[str, Any]]] = {}
 
     def table(self, table_name: str) -> MockTableQuery:
         return MockTableQuery(table_name, self.store)
+
+    def rpc(self, fn_name: str, params: dict[str, Any]) -> MockRpcQuery:
+        return MockRpcQuery(fn_name, params, self.store)

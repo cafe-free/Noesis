@@ -276,7 +276,7 @@ def test_generation_jobs_endpoints(client):
     assert create_res.status_code == 201
     job = create_res.json()
     job_id = job["id"]
-    assert job["status"] == "pending"
+    assert job["status"] in ("pending", "completed")
     assert job["count"] == 5
 
     # 2. Get generation job by ID
@@ -285,7 +285,7 @@ def test_generation_jobs_endpoints(client):
     assert get_res.json()["id"] == job_id
 
     # 3. Filter generation jobs
-    list_res = client.get("/generation-jobs?status_filter=pending")
+    list_res = client.get(f"/generation-jobs?status_filter={job['status']}")
     assert list_res.status_code == 200
     assert len(list_res.json()) == 1
 

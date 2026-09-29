@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +14,7 @@ from apps.api.routes.lessons import router as lessons_router
 from apps.api.routes.progress import router as progress_router
 from apps.api.routes.quiz_attempts import router as quiz_attempts_router
 from apps.api.routes.quizzes import router as quizzes_router
+from apps.api.routes.references import router as references_router
 from apps.api.routes.users import router as users_router
 
 app = FastAPI(title=settings.PROJECT_NAME, version="0.1.0")
@@ -37,15 +38,21 @@ app.include_router(quiz_attempts_router)
 app.include_router(exercise_attempts_router)
 app.include_router(generation_jobs_router)
 app.include_router(progress_router)
+app.include_router(references_router)
 
 # Mount static asset directory
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
-@app.get("/", response_class=FileResponse)
-async def root():
-    return FileResponse(STATIC_DIR / "index.html")
+@app.get("/")
+async def root(request: Request):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and (STATIC_DIR / "index.html").exists():
+        return FileResponse(STATIC_DIR / "index.html")
+    if (STATIC_DIR / "index.html").exists() and not accept:
+        return FileResponse(STATIC_DIR / "index.html")
+    return {"message": "Hello from Noesis!"}
 
 
 @app.get("/login", response_class=FileResponse)
