@@ -89,3 +89,23 @@ class RAGSearchResponse(BaseModel):
     query: str
     results: list[ChunkSearchResult]
     total_matches: int
+
+
+class JapaneseVocabLookupResponse(BaseModel):
+    word: str
+    kanji: str
+    reading: str
+    romaji: str | None = None
+    meanings: list[str] = Field(default_factory=list)
+    parts_of_speech: list[str] = Field(default_factory=list)
+    jlpt_level: str | None = None
+    is_common: bool = True
+    usage_examples: list[str] = Field(default_factory=list)
+    wiktionary_summary: str = ""
+    source_urls: list[str] = Field(default_factory=list)
+
+
+class JapaneseVocabImportRequest(BaseModel):
+    word: str = Field(..., min_length=1, description="Japanese word or kanji to ingest from Jisho and Wiktionary")
+    chunk_size: int = Field(default=800, ge=100, le=4000)
+    chunk_overlap: int = Field(default=150, ge=0, le=1000)

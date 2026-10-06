@@ -116,3 +116,27 @@ export async function searchReferences(payload: {
 }): Promise<RAGSearchResponse> {
   return apiClient.post<RAGSearchResponse>('/references/search', payload);
 }
+
+export interface JapaneseVocabKnowledge {
+  word: string;
+  kanji: string;
+  reading: string;
+  romaji?: string;
+  meanings: string[];
+  parts_of_speech: string[];
+  jlpt_level?: string;
+  is_common: boolean;
+  usage_examples: string[];
+  wiktionary_summary: string;
+  source_urls: string[];
+}
+
+export async function lookupJapaneseVocab(word: string): Promise<JapaneseVocabKnowledge> {
+  return apiClient.get<JapaneseVocabKnowledge>('/references/japanese/vocab', {
+    params: { word },
+  });
+}
+
+export async function importJapaneseVocab(word: string): Promise<ReferenceDocument> {
+  return apiClient.post<ReferenceDocument>('/references/japanese/vocab', { word });
+}

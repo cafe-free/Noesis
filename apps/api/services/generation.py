@@ -16,6 +16,7 @@ from apps.api.schemas.generation import (
     GeneratedQuizContent,
     GeneratedWordOrder,
 )
+from apps.api.services.japanese_vocab import japanese_vocab_service
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,16 @@ SCHEMA REQUIREMENTS:
 
 REMINDER: Output ONLY {language.upper()} for all target expressions, choices, and answers.
 """
+
+        # Augment with authoritative Jisho & Wiktionary vocabulary knowledge for Japanese
+        if language.strip().lower() == "japanese":
+            try:
+                vocab_entries = await japanese_vocab_service.get_topic_knowledge(topic, level, count)
+                vocab_context = japanese_vocab_service.format_knowledge_for_quiz_prompt(vocab_entries)
+                if vocab_context:
+                    prompt += f"\n\n{vocab_context}\n"
+            except Exception as e:
+                logger.warning(f"Could not fetch Japanese vocab knowledge from Jisho/Wiktionary: {e}")
 
         # Model identifier configured to gemma-4
         preferred_model = settings.GEMINI_MODEL or "gemma-4"

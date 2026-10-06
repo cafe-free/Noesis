@@ -10,11 +10,11 @@ from fastapi import (
     UploadFile,
     status,
 )
-from supabase import Client
-
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
 from apps.api.schemas.rag import (
+    JapaneseVocabImportRequest,
+    JapaneseVocabLookupResponse,
     RAGSearchRequest,
     RAGSearchResponse,
     ReferenceDocumentResponse,
@@ -28,7 +28,9 @@ from apps.api.services.content_extractor import (
     fetch_web_page,
     validate_url,
 )
+from apps.api.services.japanese_vocab import japanese_vocab_service
 from apps.api.services.rag_service import RAGService
+from supabase import Client
 
 router = APIRouter(
     prefix="/references",
@@ -237,3 +239,110 @@ async def search_references(
         results=results,
         total_matches=len(results),
     )
+
+
+@router.get(
+    "/japanese/vocab",
+    response_model=JapaneseVocabLookupResponse,
+    summary="Lookup Japanese vocabulary from Jisho and Wiktionary APIs",
+)
+async def lookup_japanese_vocab(
+    word: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Queries Jisho.org and English Wiktionary APIs to fetch authoritative Kanji,
+    Furigana readings, meanings, JLPT levels, and contextual sentences.
+    """
+    clean_word = word.strip()
+    if not clean_word:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Word query parameter cannot be empty.",
+        )
+
+    entry = await japanese_vocab_service.get_vocab_knowledge(clean_word)
+    return JapaneseVocabLookupResponse(
+        word=entry.word,
+        kanji=entry.kanji,
+        reading=entry.reading,
+        romaji=entry.romaji,
+        meanings=entry.meanings,
+        parts_of_speech=entry.parts_of_speech,
+        jlpt_level=entry.jlpt_level,
+        is_common=entry.is_common,
+        usage_examples=entry.usage_examples,
+        wiktionary_summary=entry.wiktionary_summary,
+        source_urls=entry.source_urls,
+    )
+
+
+@router.post(
+    "/japanese/vocab",
+    response_model=ReferenceDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ingest Japanese vocabulary reference from Jisho and Wiktionary into private knowledge base",
+)
+async def ingest_japanese_vocab(
+    payload: JapaneseVocabImportRequest,
+    current_user: dict[str, Any] = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service),
+):
+    """
+    Fetches vocabulary from Jisho.org and English Wiktionary APIs, constructs
+    structured textual knowledge, chunks it, generates embeddings, and saves
+    it to the user's private knowledge base.
+    """
+    user_id = UUID(str(current_user["id"]))
+    clean_word = payload.word.strip()
+
+    entry = await japanese_vocab_service.get_vocab_knowledge(clean_word)
+
+    # Format authoritative reference content
+    lines = [
+        f"# Japanese Vocabulary: {entry.kanji} ({entry.reading})",
+        f"- Target Word: {entry.kanji}",
+        f"- Furigana Reading: {entry.reading}",
+    ]
+    if entry.jlpt_level:
+        lines.append(f"- JLPT Level: {entry.jlpt_level}")
+    if entry.parts_of_speech:
+        lines.append(f"- Part of Speech: {', '.join(entry.parts_of_speech)}")
+    if entry.meanings:
+        lines.append(f"- English Meanings: {', '.join(entry.meanings)}")
+
+    if entry.usage_examples:
+        lines.append("\n## Example Usage Sentences:")
+        for ex in entry.usage_examples:
+            lines.append(f"- {ex}")
+
+    if entry.wiktionary_summary:
+        lines.append("\n## Wiktionary Etymology & Notes:")
+        lines.append(entry.wiktionary_summary)
+
+    content = "\n".join(lines)
+    primary_url = entry.source_urls[0] if entry.source_urls else None
+
+    metadata = {
+        "word": entry.word,
+        "kanji": entry.kanji,
+        "reading": entry.reading,
+        "jlpt_level": entry.jlpt_level,
+        "source_urls": entry.source_urls,
+        "source_apis": ["jisho.org", "en.wiktionary.org"],
+    }
+
+    doc = await rag_service.ingest_reference(
+        user_id=user_id,
+        source_type="url",
+        title=f"Japanese Vocab: {entry.kanji} ({entry.reading})",
+        content=content,
+        source_url=primary_url,
+        file_name=None,
+        content_type="text/markdown",
+        metadata=metadata,
+        chunk_size=payload.chunk_size,
+        chunk_overlap=payload.chunk_overlap,
+    )
+
+    return doc
