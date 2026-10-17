@@ -4,8 +4,6 @@ import random
 from datetime import UTC, datetime
 from typing import Any
 
-from supabase import Client
-
 from apps.api.core.config import settings
 from apps.api.core.db import get_supabase
 from apps.api.schemas.generation import (
@@ -17,6 +15,7 @@ from apps.api.schemas.generation import (
     GeneratedWordOrder,
 )
 from apps.api.services.japanese_vocab import japanese_vocab_service
+from supabase import Client
 
 logger = logging.getLogger(__name__)
 

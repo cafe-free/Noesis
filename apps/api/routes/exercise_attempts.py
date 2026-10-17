@@ -2,7 +2,6 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
 
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
@@ -11,6 +10,7 @@ from apps.api.schemas.exercise_attempt import (
     ExerciseAttemptResponse,
     ExerciseAttemptUpdate,
 )
+from supabase import Client
 
 router = APIRouter(
     prefix="/exercise-attempts",

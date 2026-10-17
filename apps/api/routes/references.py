@@ -10,6 +10,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
 from apps.api.schemas.rag import (

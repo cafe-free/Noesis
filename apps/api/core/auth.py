@@ -9,10 +9,10 @@ from uuid import uuid4
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from supabase import Client
 
 from apps.api.core.config import settings
 from apps.api.core.db import get_supabase
+from supabase import Client
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

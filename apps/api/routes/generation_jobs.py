@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
 
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
@@ -11,6 +10,7 @@ from apps.api.schemas.generation_job import (
     GenerationJobUpdate,
 )
 from apps.api.services.generation import QuizGenerationService
+from supabase import Client
 
 router = APIRouter(
     prefix="/generation-jobs",

@@ -1,7 +1,6 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
 
 from apps.api.core.auth import (
     get_current_user,
@@ -20,6 +19,7 @@ from apps.api.schemas.user import (
     UserRegistration,
     UserResponse,
 )
+from supabase import Client
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

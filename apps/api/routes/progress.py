@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from supabase import Client
 
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
 from apps.api.schemas.progress import ProgressResponse, WeakAreaItemResponse
+from supabase import Client
 
 router = APIRouter(
     prefix="/progress", tags=["progress"], dependencies=[Depends(get_current_user)]

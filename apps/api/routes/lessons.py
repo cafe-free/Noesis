@@ -1,11 +1,11 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
 
 from apps.api.core.auth import get_current_user
 from apps.api.core.db import get_supabase
 from apps.api.schemas.lesson import LessonCreate, LessonResponse, LessonUpdate
+from supabase import Client
 
 router = APIRouter(
     prefix="/lessons", tags=["lessons"], dependencies=[Depends(get_current_user)]
