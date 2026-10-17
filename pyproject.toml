@@ -15,7 +15,11 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "python-jose[cryptography]>=3.5.0",
     "supabase>=2.31.0",
+    "textual",
 ]
 
 [tool.fastapi]
 entrypoint = "apps.api.main:app"
+
+[project.scripts]
+noesis-tui = "apps.tui.app:run"

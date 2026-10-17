@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PROJECT_REF="bvmtmoqluiyoejdmnqta"
+PROJECT_REF="jfmpyczfajtpaidjzelp"
 
 echo "=== Supabase Database Migration Tool ==="
 
