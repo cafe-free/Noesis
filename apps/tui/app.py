@@ -44,7 +44,20 @@ class NoesisTUI(App):
         super().__init__(**kwargs)
         self.client = TUIClient()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
+        if self.client.has_saved_session():
+            try:
+                profile = await self.client.get_profile()
+                if profile:
+                    self.push_screen("dashboard")
+                    self.notify(
+                        f"Logged in as {profile.get('name', 'Learner')} ({profile.get('email', '')})",
+                        title="Session Restored",
+                    )
+                    return
+            except Exception:
+                pass
+
         # Start at auth screen
         self.push_screen("auth")
 
@@ -78,7 +91,30 @@ class NoesisTUI(App):
 
 
 def run():
-    """CLI launcher for Noesis TUI."""
+    """CLI launcher for Noesis TUI with subcommand routing."""
+    import asyncio
+    import sys
+    from apps.tui.auth_cli import async_main
+
+    # Handle auth CLI commands: `noesis-tui login ...`, `noesis-tui logout`, `noesis-tui status/whoami`
+    if len(sys.argv) > 1 and sys.argv[1] in ("login", "auth", "logout", "status", "whoami"):
+        cmd = sys.argv[1]
+        remaining = sys.argv[2:]
+        if cmd == "logout":
+            remaining = ["--logout", *remaining]
+        elif cmd in ("status", "whoami"):
+            remaining = ["--status", *remaining]
+        exit_code = asyncio.run(async_main(remaining))
+        if exit_code != 0:
+            sys.exit(exit_code)
+        return
+
+    # Handle flag `--demo` to authenticate before launching
+    if "--demo" in sys.argv:
+        client = TUIClient()
+        asyncio.run(client.demo_login())
+        sys.argv.remove("--demo")
+
     app = NoesisTUI()
     app.run()
 

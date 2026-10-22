@@ -30,3 +30,4 @@ entrypoint = "apps.api.main:app"
 
 [project.scripts]
 noesis-tui = "apps.tui.app:run"
+noesis-auth = "apps.tui.auth_cli:main"

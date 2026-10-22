@@ -1,6 +1,8 @@
+import json
 import os
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -27,10 +29,15 @@ from apps.api.services.generation import QuizGenerationService
 from apps.api.services.rag_service import RAGService
 
 
+SESSION_DIR = Path.home() / ".config" / "noesis"
+SESSION_FILE = SESSION_DIR / "session.json"
+
+
 class TUIClient:
     """
     Client for Noesis TUI. Connects to FastAPI backend via HTTP if available,
     or falls back to direct Supabase database and internal services seamlessly.
+    Supports persistent local sessions to allow pre-authenticating before launching the TUI.
     """
 
     def __init__(self, base_url: str | None = None):
@@ -40,6 +47,47 @@ class TUIClient:
         self.db = get_supabase()
         self.rag_service = RAGService(db=self.db)
         self.gen_service = QuizGenerationService(db=self.db)
+        self._load_saved_session()
+
+    def _load_saved_session(self) -> None:
+        """Loads credentials from disk if previously authenticated."""
+        if not SESSION_FILE.exists():
+            return
+        try:
+            with open(SESSION_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.token = data.get("token")
+            self.current_user = data.get("user")
+        except Exception:
+            self.token = None
+            self.current_user = None
+
+    def save_session(self, token: str, user: dict[str, Any]) -> None:
+        """Persists session credentials to disk."""
+        try:
+            SESSION_DIR.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "token": token,
+                "user": user,
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+            with open(SESSION_FILE, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            os.chmod(SESSION_FILE, 0o600)
+        except Exception:
+            pass
+
+    def clear_saved_session(self) -> None:
+        """Removes saved session from disk."""
+        try:
+            if SESSION_FILE.exists():
+                SESSION_FILE.unlink()
+        except Exception:
+            pass
+
+    def has_saved_session(self) -> bool:
+        """Checks if a valid user session is stored."""
+        return bool(self.token and self.current_user)
 
     def _auth_headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -68,6 +116,7 @@ class TUIClient:
                         self.current_user = user_res.json()
                     else:
                         self.current_user = {"email": clean_email, "name": clean_email.split("@")[0]}
+                    self.save_session(self.token, self.current_user)
                     return {"token": self.token, "user": self.current_user}
                 elif res.status_code == 401:
                     raise Exception("Invalid email or password.")
@@ -84,8 +133,9 @@ class TUIClient:
             raise Exception("Invalid email or password.")
 
         tokens = issue_tokens(self.db, str(user["id"]))
-        self.token = tokens.access_token
+        self.token = tokens["access_token"] if isinstance(tokens, dict) else tokens.access_token
         self.current_user = await self.get_profile(user_id=str(user["id"]))
+        self.save_session(self.token, self.current_user)
         return {"token": self.token, "user": self.current_user}
 
     async def register(
@@ -106,6 +156,7 @@ class TUIClient:
                     data = res.json()
                     self.token = data.get("access_token")
                     self.current_user = await self.get_profile()
+                    self.save_session(self.token, self.current_user)
                     return {"token": self.token, "user": self.current_user}
                 elif res.status_code == 409:
                     raise Exception("An account with this email already exists.")
@@ -139,8 +190,9 @@ class TUIClient:
 
         user_id = str(result.data[0]["id"])
         tokens = issue_tokens(self.db, user_id)
-        self.token = tokens.access_token
+        self.token = tokens["access_token"] if isinstance(tokens, dict) else tokens.access_token
         self.current_user = await self.get_profile(user_id=user_id)
+        self.save_session(self.token, self.current_user)
         return {"token": self.token, "user": self.current_user}
 
     async def demo_login(self) -> dict[str, Any]:
@@ -158,7 +210,8 @@ class TUIClient:
                 )
 
     def logout(self) -> None:
-        """Clears local session tokens."""
+        """Clears local session tokens and saved session on disk."""
+        self.clear_saved_session()
         self.token = None
         self.current_user = None
 

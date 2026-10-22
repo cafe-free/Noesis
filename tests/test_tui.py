@@ -1,7 +1,8 @@
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from apps.tui.app import NoesisTUI
+from apps.tui.auth_cli import async_main as auth_cli_main
 from apps.tui.screens.auth import AuthScreen
 from apps.tui.screens.dashboard import DashboardScreen
 from apps.tui.screens.generator import GeneratorScreen
@@ -13,6 +14,7 @@ from apps.tui.screens.references import ReferencesScreen
 def test_tui_auth_screen_mount():
     async def _run():
         app = NoesisTUI()
+        app.client.clear_saved_session()
         async with app.run_test():
             assert isinstance(app.screen, AuthScreen)
             # Toggle between login and register
@@ -27,6 +29,7 @@ def test_tui_auth_screen_mount():
 def test_tui_demo_login_flow():
     async def _run():
         app = NoesisTUI()
+        app.client.clear_saved_session()
         mock_user = {
             "id": "11111111-1111-1111-1111-111111111111",
             "name": "Alex",
@@ -55,6 +58,74 @@ def test_tui_demo_login_flow():
                 user_label = app.screen.query_one("#user-display").content
                 assert "Alex" in str(user_label)
                 assert "Spanish" in str(user_label)
+
+    asyncio.run(_run())
+
+
+def test_tui_pre_authenticated_session_skips_auth():
+    async def _run():
+        app = NoesisTUI()
+        mock_user = {
+            "id": "user-preauth-1",
+            "name": "PreAuthUser",
+            "email": "preauth@example.com",
+            "streakDays": 4,
+            "totalXp": 160,
+            "todayXp": 10,
+            "dailyGoalXp": 50,
+            "hearts": 5,
+            "maxHearts": 5,
+            "learningLanguage": "French",
+            "currentLevel": "A2",
+        }
+
+        # Mock that client already has a saved session
+        with patch.object(app.client, "has_saved_session", return_value=True), patch.object(
+            app.client, "get_profile", new_callable=AsyncMock, return_value=mock_user
+        ), patch.object(app.client, "list_quizzes", new_callable=AsyncMock, return_value=[]):
+            async with app.run_test() as pilot:
+                await pilot.pause(0.2)
+                # Should directly be on DashboardScreen, skipping AuthScreen!
+                assert isinstance(app.screen, DashboardScreen)
+                user_label = app.screen.query_one("#user-display").content
+                assert "PreAuthUser" in str(user_label)
+                assert "French" in str(user_label)
+
+    asyncio.run(_run())
+
+
+def test_auth_cli_commands():
+    async def _run():
+        mock_user = {
+            "id": "alex-id",
+            "name": "Alex",
+            "email": "alex@example.com",
+            "streakDays": 3,
+            "totalXp": 50,
+        }
+
+        with patch("apps.tui.auth_cli.TUIClient") as mock_cls:
+            mock_inst = AsyncMock()
+            mock_inst.has_saved_session = MagicMock(return_value=True)
+            mock_inst.logout = MagicMock()
+            mock_inst.get_profile = AsyncMock(return_value=mock_user)
+            mock_inst.demo_login = AsyncMock(return_value={"token": "t", "user": mock_user})
+            mock_cls.return_value = mock_inst
+
+            # 1. Test status
+            exit_code = await auth_cli_main(["--status"])
+            assert exit_code == 0
+            mock_inst.get_profile.assert_called_once()
+
+            # 2. Test demo login
+            exit_code = await auth_cli_main(["--demo"])
+            assert exit_code == 0
+            mock_inst.demo_login.assert_called_once()
+
+            # 3. Test logout
+            exit_code = await auth_cli_main(["--logout"])
+            assert exit_code == 0
+            mock_inst.logout.assert_called_once()
 
     asyncio.run(_run())
 
